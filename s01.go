@@ -21,24 +21,45 @@ func s01(slide int) {
 		params = conf.P[strconv.Itoa(1)]
 	)
 	stdo.Println(params)
-	// time.Sleep(time.Second) //start chrome
-	ct1, ca1 := chromedp.NewContext(ct0)
+	var (
+		ct1 context.Context
+		ca1 context.CancelFunc
+	)
+	if mb {
+		var (
+			ctx,
+			ct context.Context
+			cancel,
+			ca context.CancelFunc
+		)
+		ctx, cancel = chromedp.NewExecAllocator(context.Background(), options...)
+		defer cancel()
+		ct, ca = chromedp.NewContext(ctx)
+		defer ca()
+		ex(deb, chromedp.Run(ct,
+			chromedp.EmulateViewport(1920, 1080),
+			chromedp.Navigate("about:blank"),
+		))
+		ct1, ca1 = chromedp.NewContext(ct)
+	} else {
+		ct1, ca1 = chromedp.NewContext(ct0)
+	}
 	defer ca1()
 	go func() {
-		ct1, ca1 = context.WithTimeout(ct1, time.Minute)
-		defer ca1()
+		// ct1, ca1 = context.WithTimeout(ct1, to)
+		// defer ca1()
 		chromedp.Run(ct1,
 			chromedp.EmulateViewport(1920, 1080),
 			chromedp.Navigate(params[0]),
 		)
 	}()
-	time.Sleep(time.Second) //Navigate
-	img := ii{}
-	ct1, ca1 = context.WithTimeout(ct1, time.Minute)
+	time.Sleep(time.Second * 3) //Navigate
+	ct1, ca1 = context.WithTimeout(ct1, to)
 	defer ca1()
+	bytes := []byte{}
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Screenshot("div > table.weather", &img.png, chromedp.NodeVisible),
+		Screenshot("div > table.weather", &bytes, 99),
 	))
-	ssII(&img).write(fmt.Sprintf("%02d.jpg", slide))
+	ss(bytes).write(fmt.Sprintf("%02d.jpg", slide))
 	stdo.Printf("%02d Done", slide)
 }

@@ -27,81 +27,94 @@ func s08(slide int) {
 		nodes      []*cdp.Node
 	)
 	stdo.Println(params)
-	ct1, ca1 := chromedp.NewContext(ct0)
+	var (
+		ct1 context.Context
+		ca1 context.CancelFunc
+	)
+	if mb {
+		var (
+			ctx,
+			ct context.Context
+			cancel,
+			ca context.CancelFunc
+		)
+		ctx, cancel = chromedp.NewExecAllocator(context.Background(), options...)
+		defer cancel()
+		ct, ca = chromedp.NewContext(ctx)
+		defer ca()
+		ex(deb, chromedp.Run(ct,
+			chromedp.EmulateViewport(1920, 1080),
+			chromedp.Navigate("about:blank"),
+		))
+		ct1, ca1 = chromedp.NewContext(ct)
+	} else {
+		ct1, ca1 = chromedp.NewContext(ct0)
+	}
 	defer ca1()
-	ct1, ca1 = context.WithTimeout(ct1, time.Minute)
+	ct1, ca1 = context.WithTimeout(ct1, to)
 	defer ca1()
-	bytes := []byte{}
 	ex(slide, chromedp.Run(ct1,
 		chromedp.EmulateViewport(1920, 1080),
 		browser.SetDownloadBehavior("allow").WithDownloadPath(filepath.Join(root, doc)),
 		chromedp.Navigate(params[0]),
 		chromedp.Sleep(time.Second),
 	))
-	if deb == slide {
-		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-			ss(bytes).write(fmt.Sprintf("%02d get.png", slide))
-		}
+	scs(slide, ct1, fmt.Sprintf("%02d get.png", slide))
+	input := "#login_form-username"
+	ct2, ca2 := context.WithTimeout(ct1, time.Second)
+	defer ca2()
+	chromedp.Run(ct2,
+		chromedp.Nodes(input, &nodes),
+	)
+	if len(nodes) > 0 {
+		stdo.Println(input)
+		ex(slide, chromedp.Run(ct1,
+			// chromedp.MouseClickNode(nodes[0]),
+			chromedp.SetValue(input, params[1], chromedp.NodeEnabled),
+			// chromedp.SendKeys(input, params[1], chromedp.NodeEnabled),
+			chromedp.Sleep(time.Second),
+		))
+		input = "#login_form-password"
+		ex(slide, chromedp.Run(ct1,
+			chromedp.SetValue(input, params[2], chromedp.NodeEnabled),
+			// chromedp.SendKeys(input, params[2], chromedp.NodeEnabled),
+			chromedp.Sleep(time.Second),
+		))
+		ex(slide, chromedp.Run(ct1,
+			// chromedp.SendKeys(input, kb.Enter, chromedp.NodeEnabled),
+			// chromedp.Click("#login_form-submit", chromedp.NodeEnabled),
+			chromedp.Click("//span[.='Войти']", chromedp.NodeEnabled),
+			chromedp.Sleep(time.Second),
+		))
+		scs(slide, ct1, fmt.Sprintf("%02d Войти.png", slide))
 	}
+	title := "По работникам и типу задачи"
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Sleep(time.Second),
-		chromedp.Click("//input[@id='login_form-username']", chromedp.NodeReady),
-		chromedp.SendKeys("//input[@id='login_form-username']", params[1], chromedp.NodeReady),
+		// chromedp.Click(fmt.Sprintf("span[title='%s']", title), chromedp.NodeEnabled),
+		chromedp.Click(fmt.Sprintf("//span[.='%s']", title), chromedp.NodeEnabled),
 		chromedp.Sleep(time.Second),
 	))
+	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, title))
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//input[@id='login_form-password']", chromedp.NodeReady),
-		chromedp.SendKeys("//input[@id='login_form-password']", params[2], chromedp.NodeReady),
+		chromedp.Click("//span[.='месяцы']", chromedp.NodeEnabled),
 		chromedp.Sleep(time.Second),
 	))
+	scs(slide, ct1, fmt.Sprintf("%02d месяцы.png", slide))
+	ul := "ul.ui-widget"
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//span[contains(.,'Войти')]", chromedp.NodeReady),
+		chromedp.Click(ul, chromedp.ByQuery, chromedp.NodeEnabled),
+		// chromedp.Click("//ul[contains(@class,'ui-selectcheckboxmenu-multiple-container')]", chromedp.NodeReady),
 		chromedp.Sleep(time.Second),
 	))
-	if deb == slide {
-		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-			ss(bytes).write(fmt.Sprintf("%02d Войти.png", slide))
-		}
-	}
+	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, ul))
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//span[contains(.,'По работникам и типу задачи')]", chromedp.NodeReady),
+		chromedp.Click("//li[5]/label", chromedp.NodeEnabled),
 		chromedp.Sleep(time.Second),
 	))
-	if deb == slide {
-		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-			ss(bytes).write(fmt.Sprintf("%02d По работникам и типу задачи.png", slide))
-		}
-	}
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//span[contains(.,'месяцы')]", chromedp.NodeReady),
-		chromedp.Sleep(time.Second),
-	))
-	if deb == slide {
-		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-			ss(bytes).write(fmt.Sprintf("%02d месяцы.png", slide))
-		}
-	}
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//ul[contains(@class,'ui-selectcheckboxmenu-multiple-container')]", chromedp.NodeReady),
-		chromedp.Sleep(time.Second),
-	))
-	if deb == slide {
-		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-			ss(bytes).write(fmt.Sprintf("%02d ui-selectcheckboxmenu-multiple-container.png", slide))
-		}
-	}
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//li[5]/label", chromedp.NodeReady),
-		chromedp.Sleep(time.Second),
-	))
-	if deb == slide {
-		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-			ss(bytes).write(fmt.Sprintf("%02d Обработка наряда.png", slide))
-		}
-	}
+	scs(slide, ct1, fmt.Sprintf("%02d Обработка наряда.png", slide))
 	for i := 4; i < 9; i++ {
 		ex(slide, chromedp.Run(ct1,
-			chromedp.Nodes("//*[contains(@class,'ui-tree-toggler')]", &nodes, chromedp.NodeReady),
+			chromedp.Nodes(".ui-tree-toggler", &nodes, chromedp.NodeEnabled),
 		))
 		ex(slide, chromedp.Run(ct1,
 			chromedp.MouseClickNode(nodes[i]),
@@ -109,32 +122,29 @@ func s08(slide int) {
 		))
 	}
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//span[contains(.,'Группа инсталляций')]", chromedp.NodeReady),
+		chromedp.Click("//span[.='Группа инсталляций']", chromedp.NodeEnabled),
 		chromedp.Sleep(time.Second),
 	))
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//span[contains(.,'Группа клиентского сервиса')]", chromedp.NodeReady),
+		chromedp.Click("//span[.='Группа клиентского сервиса']", chromedp.NodeEnabled),
 		chromedp.Sleep(time.Second),
 	))
-	if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-		ss(bytes).write(fmt.Sprintf("%02d Группа клиентского сервиса.png", slide))
-	}
+	scs(deb, ct1, fmt.Sprintf("%02d Группа клиентского сервиса.png", slide))
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//span[contains(.,'ОК')]", chromedp.NodeReady),
-		chromedp.Sleep(time.Second*7),
-	))
-	ex(slide, chromedp.Run(ct1,
-		// chromedp.WaitVisible("//button[@id='report_actions_form-export_report_data']/span", chromedp.NodeReady),
-		chromedp.Click("//button[@id='report_actions_form-export_report_data']/span", chromedp.NodeReady),
+		chromedp.Click("//span[.='ОК']", chromedp.NodeVisible, chromedp.NodeEnabled),
 		chromedp.Sleep(time.Second),
 	))
 	os.Remove(filepath.Join(root, doc, TaskClosed))
+	time.Sleep(time.Second * 7)
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("//span[contains(.,'EXCEL')]", chromedp.NodeReady),
-		chromedp.Sleep(time.Second*3), //for download
+		chromedp.Click("button#report_actions_form-export_report_data > span", chromedp.NodeVisible, chromedp.NodeEnabled),
+		// chromedp.Click("//button[@id='report_actions_form-export_report_data']/span", chromedp.NodeEnabled),
+		chromedp.Sleep(time.Second),
 	))
-	if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-		ss(bytes).write(fmt.Sprintf("%02d.png", slide))
-	}
+	ex(slide, chromedp.Run(ct1,
+		chromedp.Click("//span[.='EXCEL']", chromedp.NodeVisible, chromedp.NodeEnabled),
+		chromedp.Sleep(time.Second), //for download
+	))
+	scs(deb, ct1, fmt.Sprintf("%02d.png", slide))
 	stdo.Printf("%02d Done", slide)
 }

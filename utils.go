@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
+	"math"
 	"os"
 	"os/exec"
 	"path"
@@ -13,6 +15,11 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/dom"
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/cdproto/runtime"
+	"github.com/chromedp/chromedp"
 	"github.com/xlab/closer"
 )
 
@@ -125,4 +132,165 @@ func src(deep int) (s string) {
 	s = strings.Split(s, " +0x")[0]
 	_, s = path.Split(s)
 	return
+}
+
+func Screenshot(sel interface{}, picbuf *[]byte, quality int, opts ...chromedp.QueryOption) chromedp.QueryAction {
+	if picbuf == nil {
+		panic("picbuf cannot be nil")
+	}
+
+	return chromedp.QueryAfter(sel, func(ctx context.Context, execCtx runtime.ExecutionContextID, nodes ...*cdp.Node) error {
+		if len(nodes) < 1 {
+			return fmt.Errorf("selector %q did not return any nodes", sel)
+		}
+
+		// get box model
+		var clip page.Viewport
+		if err := callFunctionOnNode(ctx, nodes[0], getClientRectJS, &clip); err != nil {
+			return err
+		}
+		// The "Capture node screenshot" command does not handle fractional dimensions properly.
+		// Let's align with puppeteer:
+		// https://github.com/puppeteer/puppeteer/blob/bba3f41286908ced8f03faf98242d4c3359a5efc/src/common/Page.ts#L2002-L2011
+		x, y := math.Round(clip.X), math.Round(clip.Y)
+		clip.Width, clip.Height = math.Round(clip.Width+clip.X-x), math.Round(clip.Height+clip.Y-y)
+		clip.X, clip.Y = x, y
+
+		// The next comment is copied from the original code.
+		// This seems to be necessary? Seems to do the right thing regardless of DPI.
+		clip.Scale = 1
+
+		format := page.CaptureScreenshotFormatPng
+		if quality != 100 {
+			format = page.CaptureScreenshotFormatJpeg
+		}
+		// take screenshot of the box
+		buf, err := page.CaptureScreenshot().
+			WithFormat(format).
+			WithQuality(int64(quality)).
+			WithCaptureBeyondViewport(true).
+			WithFromSurface(true).
+			WithClip(&clip).
+			Do(ctx)
+		if err != nil {
+			return err
+		}
+
+		*picbuf = buf
+		return nil
+	}, append(opts, chromedp.NodeVisible)...)
+}
+func FullScreenshot(res *[]byte, quality int, clip *page.Viewport) chromedp.EmulateAction {
+	if res == nil {
+		panic("res cannot be nil")
+	}
+	if clip == nil {
+		panic("clip cannot be nil")
+	}
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		format := page.CaptureScreenshotFormatPng
+		if quality != 100 {
+			format = page.CaptureScreenshotFormatJpeg
+		}
+
+		// capture screenshot
+		var err error
+		*res, err = page.CaptureScreenshot().
+			WithCaptureBeyondViewport(true).
+			WithFromSurface(true).
+			WithFormat(format).
+			WithQuality(int64(quality)).
+			WithClip(clip).
+			Do(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func getClientRect(sel interface{}, clip *page.Viewport, opts ...chromedp.QueryOption) chromedp.QueryAction {
+	if clip == nil {
+		panic("clip cannot be nil")
+	}
+
+	return chromedp.QueryAfter(sel, func(ctx context.Context, execCtx runtime.ExecutionContextID, nodes ...*cdp.Node) error {
+		if len(nodes) < 1 {
+			return fmt.Errorf("selector %q did not return any nodes", sel)
+		}
+
+		// get box model
+		var Viewport page.Viewport
+		if err := callFunctionOnNode(ctx, nodes[0], getClientRectJS, &Viewport); err != nil {
+			return err
+		}
+		// The "Capture node screenshot" command does not handle fractional dimensions properly.
+		// Let's align with puppeteer:
+		// https://github.com/puppeteer/puppeteer/blob/bba3f41286908ced8f03faf98242d4c3359a5efc/src/common/Page.ts#L2002-L2011
+		x, y := math.Round(Viewport.X), math.Round(Viewport.Y)
+		Viewport.Width, Viewport.Height = math.Round(Viewport.Width+Viewport.X-x), math.Round(Viewport.Height+Viewport.Y-y)
+		Viewport.X, Viewport.Y = x, y
+
+		// The next comment is copied from the original code.
+		// This seems to be necessary? Seems to do the right thing regardless of DPI.
+		Viewport.Scale = 1
+
+		*clip = Viewport
+		return nil
+	}, append(opts, chromedp.NodeVisible)...)
+}
+
+func callFunctionOnNode(ctx context.Context, node *cdp.Node, function string, res interface{}, args ...interface{}) error {
+	r, err := dom.ResolveNode().WithNodeID(node.NodeID).Do(ctx)
+	if err != nil {
+		return err
+	}
+	err = chromedp.CallFunctionOn(function, res,
+		func(p *runtime.CallFunctionOnParams) *runtime.CallFunctionOnParams {
+			return p.WithObjectID(r.ObjectID)
+		},
+		args...,
+	).Do(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	// Try to release the remote object.
+	// It will fail if the page is navigated or closed,
+	// and it's okay to ignore the error in this case.
+	_ = runtime.ReleaseObject(r.ObjectID).Do(ctx)
+
+	return nil
+}
+
+var getClientRectJS = `function getClientRect() {
+	const e = this.getBoundingClientRect(),
+	  t = this.ownerDocument.documentElement.getBoundingClientRect();
+	return {
+	  x: e.left - t.left,
+	  y: e.top - t.top,
+	  width: e.width,
+	  height: e.height,
+	};
+}`
+
+func clip(X, Y, Width, Height float64) *page.Viewport {
+	clip := page.Viewport{
+		X:      X,
+		Y:      Y,
+		Width:  Width,
+		Height: Height,
+		Scale:  1,
+	}
+	return &clip
+}
+
+func scs(slide int, ct1 context.Context, fn string) {
+	bytes := []byte{}
+	if deb == slide {
+		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
+			ss(bytes).write(fn)
+		}
+	}
 }

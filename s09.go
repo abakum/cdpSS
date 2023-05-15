@@ -9,7 +9,7 @@ import (
 
 func s09(slide int) {
 	switch deb {
-	case 0, 8, -8, slide, -slide:
+	case 0, slide, -slide:
 	default:
 		return
 	}

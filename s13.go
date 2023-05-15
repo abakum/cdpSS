@@ -7,12 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
-	"github.com/chromedp/chromedp/kb"
 )
 
-func s04(slide int) {
+func s13(slide int) {
 	switch deb {
 	case 0, slide, -slide:
 	default:
@@ -22,10 +20,8 @@ func s04(slide int) {
 	defer wg.Done()
 	var (
 		params = conf.P[strconv.Itoa(slide)]
-		imageBackground,
-		visualContainerHost page.Viewport
 	)
-	stdo.Println(params)
+	stdo.Println(params, sc, rf)
 	var (
 		ct1 context.Context
 		ca1 context.CancelFunc
@@ -82,51 +78,60 @@ func s04(slide int) {
 		))
 	}
 	scs(slide, ct1, fmt.Sprintf("%02d iframe.png", slide))
-	cb(slide, ct1, "СЦ")
+	div := "div[aria-label=mrf]"
 	ex(slide, chromedp.Run(ct1,
-		getClientRect("div.imageBackground", &imageBackground, chromedp.NodeVisible),
+		chromedp.Click(div, chromedp.NodeVisible),
+		chromedp.Sleep(time.Second),
 	))
 	ex(slide, chromedp.Run(ct1,
-		getClientRect("div.visualContainerHost", &visualContainerHost, chromedp.NodeVisible),
+		chromedp.Click(fmt.Sprintf("span[title='%s']", params[1]), chromedp.NodeVisible),
+		chromedp.Sleep(time.Second),
 	))
+	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, params[1]))
+	div = "div[aria-label='РФ']"
 	ex(slide, chromedp.Run(ct1,
-		FullScreenshot(&bytes, 99, clip(
-			visualContainerHost.X,
-			visualContainerHost.Y,
-			imageBackground.X-visualContainerHost.X,
-			visualContainerHost.Height,
-		)),
+		chromedp.Click(div, chromedp.NodeVisible),
+		chromedp.Sleep(time.Second),
 	))
-	ss(bytes).write(fmt.Sprintf("%02d.jpg", slide))
-	stdo.Printf("%02d Done", slide)
-}
-
-func cb(slide int, ct1 context.Context, key string) {
-	label := fmt.Sprintf("div[aria-label='%s'] > i", key)
+	scs(slide, ct1, fmt.Sprintf("%02d РФ.png", slide))
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(label, chromedp.NodeVisible),
+		chromedp.Click(fmt.Sprintf("span[title='%s']", rf), chromedp.NodeVisible),
+		chromedp.Sleep(time.Second),
+	))
+	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, rf))
+	div = "div[aria-label='СЦ']"
+	ex(slide, chromedp.Run(ct1,
+		chromedp.Click(div, chromedp.NodeVisible),
 		chromedp.Sleep(time.Second),
 	))
 	scs(slide, ct1, fmt.Sprintf("%02d СЦ.png", slide))
-	inp := "div.searchHeader.show > input"
 	ex(slide, chromedp.Run(ct1,
-		chromedp.SetValue(inp, sc, chromedp.NodeEnabled, chromedp.NodeVisible),
-		chromedp.SendKeys(inp, kb.Enter),
-		// chromedp.SendKeys(inp, sc, chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d Поиск.png", slide))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(fmt.Sprintf("//span[.='%s']", sc), chromedp.NodeVisible),
+		chromedp.Click(fmt.Sprintf("span[title='%s']", sc), chromedp.NodeVisible),
 		chromedp.Sleep(time.Second),
 	))
 	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(label, chromedp.NodeVisible),
+		chromedp.Click(div, chromedp.NodeVisible),
 		chromedp.Sleep(time.Second),
 	))
 	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, sc))
+
 	ex(slide, chromedp.Run(ct1,
-		chromedp.WaitNotPresent("div.circle"),
-		chromedp.Sleep(time.Second),
+		chromedp.WaitVisible("//*[text()='Кавр.Динамика по:']"),
 	))
+	scs(slide, ct1, fmt.Sprintf("%02d Кавр.Динамика по.png", slide))
+
+	ex(slide, chromedp.Run(ct1,
+		chromedp.WaitVisible("//*[text()='Пред.Неделя']"),
+	))
+	scs(slide, ct1, fmt.Sprintf("%02d Пред.Неделя.png", slide))
+	// ex(slide, chromedp.Run(ct1,
+	// 	chromedp.WaitNotPresent("div.circle"),
+	// 	chromedp.Sleep(time.Second),
+	// ))
+	// scs(slide, ct1, fmt.Sprintf("%02d no circle.png", slide))
+	ex(slide, chromedp.Run(ct1,
+		Screenshot("div.visualContainerHost", &bytes, 99),
+	))
+	ss(bytes).write(fmt.Sprintf("%02d.jpg", slide))
+	stdo.Printf("%02d Done", slide)
 }
