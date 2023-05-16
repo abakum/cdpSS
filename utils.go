@@ -300,13 +300,23 @@ func chrome() (ctTab context.Context, caTab context.CancelFunc) {
 	ctExe, _ := chromedp.NewExecAllocator(ctRoot, options...)
 	ctTab, caTab = chromedp.NewContext(ctExe)
 	// first tab create browser instance
-	ex(deb, chromedp.Run(ctTab,
-		chromedp.EmulateViewport(1920, 1080),
-		chromedp.Navigate("about:blank"),
-	))
-	time.AfterFunc(time.Second*3, func() {
-		// close empty tab
-		chromedp.Run(ctTab, chromedp.Evaluate("window.close();", nil))
-	})
+	if !mb {
+		ex(deb, chromedp.Run(ctTab,
+			chromedp.EmulateViewport(1920, 1080),
+			chromedp.Navigate("about:blank"),
+		))
+		time.AfterFunc(time.Second*3, func() {
+			// close empty tab
+			chromedp.Run(ctTab, chromedp.Evaluate("window.close();", nil))
+		})
+	}
 	return
+}
+func exeFN() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	_, exeN := filepath.Split(exe)
+	return strings.TrimSuffix(exeN, filepath.Ext(exeN)), err
 }

@@ -38,14 +38,14 @@ func s04(slide int) {
 		ct1, ca1 = chromedp.NewContext(ctTab)
 	}
 	defer ca1()
-	ct1, ca1 = context.WithTimeout(ct1, to)
-	defer ca1()
-	bytes := []byte{}
 	chromedp.Run(ct1,
 		chromedp.EmulateViewport(1920, 1080),
 		chromedp.Navigate(params[0]),
 		chromedp.Sleep(time.Second),
 	)
+	ct1, ca1 = context.WithTimeout(ct1, to)
+	defer ca1()
+	bytes := []byte{}
 	if false {
 		ex(slide, chromedp.Run(ct1,
 			chromedp.Navigate(params[0]+"?rs:Embed=true"),

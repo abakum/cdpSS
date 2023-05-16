@@ -30,7 +30,7 @@ var (
 	wg   sync.WaitGroup
 	cd   string // s:\bin
 	root string // s:
-	exit int
+	exit int    = 2
 	sc   string
 	rf   string
 	ctRoot,
@@ -45,7 +45,10 @@ func main() {
 	var (
 		err error
 	)
-	defer closer.Close()
+	defer func() {
+		exit = 0
+		closer.Close()
+	}()
 	stdo = log.New(os.Stdout, "", log.Lshortfile|log.Ltime)
 	cd, err = os.Getwd()
 	ex(2, err)
@@ -86,7 +89,9 @@ func main() {
 			chromedp.Flag("headless", false),
 		)
 	}
-	conf, err = loader(filepath.Join(cd, goSSjson))
+	exeF, err := exeFN()
+	ex(2, err)
+	conf, err = loader(filepath.Join(cd, exeF+".json"))
 	if err != nil {
 		conf.P = map[string][]string{}
 		conf.Ids = []int{}
@@ -97,6 +102,7 @@ func main() {
 	sc = conf.P["4"][1]
 	rf = conf.P["12"][2]
 	ctRoot, caRoot = context.WithCancel(context.Background())
+	defer caRoot()
 	if !mb {
 		// in multitab mode with one browser instance some tab has hang
 		// regardless of chrome://flags/#high-efficiency-mode-available
@@ -125,7 +131,7 @@ func main() {
 		os.Exit(exit)
 	})
 	for _, de := range slides {
-		stdo.Println(de)
+		stdo.Println(de, mb)
 		deb = de
 		go s01(1)
 		// go s01(3)

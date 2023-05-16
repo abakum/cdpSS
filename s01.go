@@ -34,8 +34,6 @@ func s01(slide int) {
 	}
 	defer ca1()
 	go func() {
-		// ct1, ca1 = context.WithTimeout(ct1, to)
-		// defer ca1()
 		chromedp.Run(ct1,
 			chromedp.EmulateViewport(1920, 1080),
 			chromedp.Navigate(params[0]),

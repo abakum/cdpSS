@@ -39,14 +39,14 @@ func s08(slide int) {
 		ct1, ca1 = chromedp.NewContext(ctTab)
 	}
 	defer ca1()
-	ct1, ca1 = context.WithTimeout(ct1, to)
-	defer ca1()
-	ex(slide, chromedp.Run(ct1,
-		chromedp.EmulateViewport(1920, 1080),
+	chromedp.Run(ct1,
 		browser.SetDownloadBehavior("allow").WithDownloadPath(filepath.Join(root, doc)),
+		chromedp.EmulateViewport(1920, 1080),
 		chromedp.Navigate(params[0]),
 		chromedp.Sleep(time.Second),
-	))
+	)
+	ct1, ca1 = context.WithTimeout(ct1, to)
+	defer ca1()
 	scs(slide, ct1, fmt.Sprintf("%02d get.png", slide))
 	input := "#login_form-username"
 	ct2, ca2 := context.WithTimeout(ct1, time.Second)
@@ -123,7 +123,11 @@ func s08(slide int) {
 		chromedp.Sleep(time.Second),
 	))
 	os.Remove(filepath.Join(root, doc, TaskClosed))
-	time.Sleep(time.Second * 7)
+	// time.Sleep(time.Second * 7)
+	ex(slide, chromedp.Run(ct1,
+		chromedp.Click("span.ui-chkbox-label", chromedp.NodeVisible, chromedp.NodeVisible, chromedp.NodeEnabled),
+		chromedp.Sleep(time.Second),
+	))
 	ex(slide, chromedp.Run(ct1,
 		chromedp.Click("button#report_actions_form-export_report_data > span", chromedp.NodeVisible, chromedp.NodeEnabled),
 		// chromedp.Click("//button[@id='report_actions_form-export_report_data']/span", chromedp.NodeEnabled),

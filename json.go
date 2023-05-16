@@ -5,10 +5,6 @@ import (
 	"os"
 )
 
-const (
-	goSSjson = "goSS.json"
-)
-
 type config struct {
 	fn  string
 	P   map[string][]string
