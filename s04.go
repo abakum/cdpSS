@@ -31,23 +31,11 @@ func s04(slide int) {
 		ca1 context.CancelFunc
 	)
 	if mb {
-		var (
-			ctx,
-			ct context.Context
-			cancel,
-			ca context.CancelFunc
-		)
-		ctx, cancel = chromedp.NewExecAllocator(context.Background(), options...)
-		defer cancel()
-		ct, ca = chromedp.NewContext(ctx)
-		defer ca()
-		ex(deb, chromedp.Run(ct,
-			chromedp.EmulateViewport(1920, 1080),
-			chromedp.Navigate("about:blank"),
-		))
-		ct1, ca1 = chromedp.NewContext(ct)
+		ctLoc, caLoc := chrome()
+		defer caLoc()
+		ct1, ca1 = chromedp.NewContext(ctLoc)
 	} else {
-		ct1, ca1 = chromedp.NewContext(ct0)
+		ct1, ca1 = chromedp.NewContext(ctTab)
 	}
 	defer ca1()
 	ct1, ca1 = context.WithTimeout(ct1, to)

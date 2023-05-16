@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/dom"
@@ -293,4 +294,19 @@ func scs(slide int, ct1 context.Context, fn string) {
 			ss(bytes).write(fn)
 		}
 	}
+}
+
+func chrome() (ctTab context.Context, caTab context.CancelFunc) {
+	ctExe, _ := chromedp.NewExecAllocator(ctRoot, options...)
+	ctTab, caTab = chromedp.NewContext(ctExe)
+	// first tab create browser instance
+	ex(deb, chromedp.Run(ctTab,
+		chromedp.EmulateViewport(1920, 1080),
+		chromedp.Navigate("about:blank"),
+	))
+	time.AfterFunc(time.Second*3, func() {
+		// close empty tab
+		chromedp.Run(ctTab, chromedp.Evaluate("window.close();", nil))
+	})
+	return
 }

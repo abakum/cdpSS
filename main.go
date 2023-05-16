@@ -21,29 +21,29 @@ const (
 	mov = "abaku.mp4"
 	// chromeBin        = `C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`
 	userDataDir = `Google\Chrome\User Data\Default`
-	to          = time.Minute * 3
-	mb          = false
+	to          = time.Minute * 4
 )
 
 var (
-	deb     int
-	stdo    *log.Logger
-	wg      sync.WaitGroup
-	cd      string // s:\bin
-	root    string // s:
-	exit    int
-	sc      string
-	rf      string
-	ct0     context.Context
-	ca0     context.CancelFunc
+	deb  int
+	stdo *log.Logger
+	wg   sync.WaitGroup
+	cd   string // s:\bin
+	root string // s:
+	exit int
+	sc   string
+	rf   string
+	ctRoot,
+	ctTab context.Context
+	caRoot,
+	caTab context.CancelFunc
 	options []func(*chromedp.ExecAllocator)
+	mb      = false
 )
 
 func main() {
 	var (
-		err    error
-		ctx    context.Context
-		cancel context.CancelFunc
+		err error
 	)
 	defer closer.Close()
 	stdo = log.New(os.Stdout, "", log.Lshortfile|log.Ltime)
@@ -63,6 +63,7 @@ func main() {
 		}
 	}
 	if len(slides) == 0 {
+		mb = true
 		slides = append(slides, 0)
 	}
 	options = append(
@@ -72,11 +73,6 @@ func main() {
 		chromedp.Flag("window-position", "0,0"),
 		// chromedp.WindowSize(1920, 1080),
 	)
-	if !mb {
-		options = append(options,
-			chromedp.UserDataDir(filepath.Join(os.Getenv("LOCALAPPDATA"), userDataDir)),
-		)
-	}
 	if headless {
 		options = append(options,
 			// chromedp.Flag("headless", false),
@@ -100,21 +96,19 @@ func main() {
 	}
 	sc = conf.P["4"][1]
 	rf = conf.P["12"][2]
+	ctRoot, caRoot = context.WithCancel(context.Background())
 	if !mb {
-		ctx, cancel = chromedp.NewExecAllocator(context.Background(), options...)
-		ct0, ca0 = chromedp.NewContext(ctx)
-		defer ca0()
-		ex(deb, chromedp.Run(ct0,
-			chromedp.EmulateViewport(1920, 1080),
-			chromedp.Navigate("about:blank"),
-		))
+		// in multitab mode with one browser instance some tab has hang
+		// regardless of chrome://flags/#high-efficiency-mode-available
+		options = append(options,
+			chromedp.UserDataDir(filepath.Join(os.Getenv("LOCALAPPDATA"), userDataDir)),
+		)
+		ctTab, caTab = chrome()
+		defer caTab()
 	}
 	closer.Bind(func() {
 		deb = 2 //exit
-		if !mb {
-			chromedp.Run(ct0, chromedp.Evaluate("window.close();", nil))
-			cancel()
-		}
+		caRoot()
 		stdo.Println("main Done", exit)
 		switch {
 		case exit == 0:
