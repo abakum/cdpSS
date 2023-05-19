@@ -11,7 +11,7 @@ import (
 
 func s05(slide int) {
 	var (
-		params = conf.P[strconv.Itoa(slide)]
+		params = conf.P[strconv.Itoa(abs(slide))]
 		title,
 		innerContainer,
 		visualContainerHost page.Viewport

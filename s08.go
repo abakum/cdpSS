@@ -15,7 +15,7 @@ import (
 func s08(slide int) {
 	var (
 		TaskClosed = "TaskClosed.xlsx"
-		params     = conf.P[strconv.Itoa(slide)]
+		params     = conf.P[strconv.Itoa(abs(slide))]
 		nodes      []*cdp.Node
 	)
 	stdo.Println(params)

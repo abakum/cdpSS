@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	dp "github.com/chromedp/chromedp"
@@ -9,8 +10,7 @@ import (
 
 func s01(slide int) {
 	var (
-		params = conf.P["1"]
-		err    error
+		params = conf.P[strconv.Itoa(abs(slide))]
 	)
 	stdo.Println(params)
 	ct, ca := chrome()
@@ -23,11 +23,9 @@ func s01(slide int) {
 	}()
 	time.Sleep(sec * 3) //Navigate
 	bytes := []byte{}
-	ct, ca, err = RunTO(ct, to,
+	ex(slide, Run(ct, to,
 		Screenshot("div > table.weather", &bytes, 99),
-	)
-	defer ca()
-	ex(slide, err)
+	))
 	ss(bytes).write(fmt.Sprintf("%02d.jpg", slide))
 	done(slide)
 }

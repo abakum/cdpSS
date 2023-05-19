@@ -18,7 +18,7 @@ const (
 	bat         = "abaku.bat"
 	mov         = "abaku.mp4"
 	userDataDir = `Google\Chrome\User Data\Default`
-	to          = time.Minute * 4
+	to          = time.Minute * 3
 	ms          = time.Millisecond * 200
 	sec         = time.Second
 )
@@ -88,9 +88,9 @@ func main() {
 			headLess = false
 			slides[0] = 0
 		case 100:
-			slides = []int{1, 4, 5, 8, 9, 12, 13}
+			slides = []int{1, 4, 5, 8, 12, 13}
 		case -100:
-			slides = []int{-1, -4, -5, -8, -9, -12, -13}
+			slides = []int{-1, -4, -5, -8, -12, -13}
 		}
 	}
 	options = append(
@@ -157,25 +157,28 @@ func main() {
 		}
 		os.Exit(exit)
 	})
+	started := make(chan bool, 10)
+	autoStart(started, sec) //for wg.Add
+	time.AfterFunc(sec, func() {
+		started <- true
+	})
 	for _, de := range slides {
 		stdo.Println(de, "multiBrowser:", multiBrowser, "headLess:", headLess)
 		deb = de
-		go start(s01, 1, &wg)
-		go start(s04, 4, &wg)
-		go start(s05, 5, &wg)
-		go start(s08, 8, &wg)
-		go start(s12, 12, &wg)
-		go start(s13, 13, &wg)
-		if deb < 97 {
-			time.Sleep(sec * 2) //for wg.Add
-		}
+		go start(s01, 1, &wg, started)
+		go start(s04, 4, &wg, started)
+		go start(s05, 5, &wg, started)
+		go start(s08, 8, &wg, started)
+		go start(s12, 12, &wg, started)
+		go start(s13, 13, &wg, started)
 	}
+	<-started //for wg.Add
 	wg.Wait()
-	start(s97, 97, nil)    //bat jpgs to mov
-	go start(s98, 98, &wg) //telegram
-	if deb == 98 {
-		time.Sleep(sec) //for wg.Add
-	}
-	start(s99, 99, nil)
+	close(started)
+	start(s97, 97, nil, nil)        //bat jpgs to mov
+	autoStart(started, sec)         //for wg.Add
+	go start(s98, 98, &wg, started) //telegram
+	start(s99, 99, nil, nil)
+	<-started //for wg.Add of s98
 	wg.Wait()
 }

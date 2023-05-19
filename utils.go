@@ -361,10 +361,10 @@ func Scanln() {
 	if headLess {
 		return
 	}
-	stdo.Print(src(8), "Press Enter>")
+	stdo.Print(src(8), "\nPress Enter>")
 	fmt.Scanln()
 }
-func start(fu func(slide int), slide int, wg *sync.WaitGroup) {
+func start(fu func(slide int), slide int, wg *sync.WaitGroup, started chan bool) {
 	switch deb {
 	case 0, slide, -slide:
 	default:
@@ -372,6 +372,9 @@ func start(fu func(slide int), slide int, wg *sync.WaitGroup) {
 	}
 	if wg != nil {
 		wg.Add(1)
+		if started != nil {
+			started <- true
+		}
 		defer wg.Done()
 	}
 	fu(slide)
@@ -407,4 +410,19 @@ func iframe(slide int, ct context.Context, url string) {
 		dp.Navigate(src),
 		dp.Sleep(sec),
 	))
+}
+
+func abs(i int) int {
+	if i > 0 {
+		return i
+	}
+	return -i
+}
+func autoStart(started chan bool, d time.Duration) {
+	for len(started) > 0 {
+		<-started
+	}
+	time.AfterFunc(d, func() {
+		started <- true
+	})
 }

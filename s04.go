@@ -12,7 +12,7 @@ import (
 
 func s04(slide int) {
 	var (
-		params = conf.P[strconv.Itoa(slide)]
+		params = conf.P[strconv.Itoa(abs(slide))]
 		imageBackground,
 		visualContainerHost page.Viewport
 	)
@@ -58,6 +58,7 @@ func cb(slide int, ctx context.Context, key string) {
 		dp.Click(se, dp.NodeVisible),
 		dp.Sleep(ms),
 	))
+
 	scs(slide, ctx, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "Поиск"

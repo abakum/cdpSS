@@ -10,7 +10,7 @@ import (
 
 func s13(slide int) {
 	var (
-		params = conf.P[strconv.Itoa(slide)]
+		params = conf.P[strconv.Itoa(abs(slide))]
 	)
 	stdo.Println(params, sc, rf)
 	ct, ca := chrome()

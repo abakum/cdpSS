@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	dp "github.com/chromedp/chromedp"
@@ -10,7 +11,7 @@ import (
 
 func s99(slide int) {
 	var (
-		params = conf.P["99"]
+		params = conf.P[strconv.Itoa(abs(slide))]
 		sel    string
 		tit    string
 		err    error
