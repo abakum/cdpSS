@@ -4,80 +4,42 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/chromedp"
+	dp "github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
 )
 
 func s04(slide int) {
-	switch deb {
-	case 0, slide, -slide:
-	default:
-		return
-	}
-	wg.Add(1)
-	defer wg.Done()
 	var (
 		params = conf.P[strconv.Itoa(slide)]
 		imageBackground,
 		visualContainerHost page.Viewport
 	)
 	stdo.Println(params)
-	var (
-		ct1 context.Context
-		ca1 context.CancelFunc
+	ct, ca := chrome()
+	defer ca()
+	dp.Run(ct,
+		EmulateViewport(1920, 1080),
+		dp.Navigate(params[0]),
+		dp.Sleep(sec),
 	)
-	if mb {
-		ctLoc, caLoc := chrome()
-		defer caLoc()
-		ct1, ca1 = chromedp.NewContext(ctLoc)
-	} else {
-		ct1, ca1 = chromedp.NewContext(ctTab)
-	}
-	defer ca1()
-	chromedp.Run(ct1,
-		chromedp.EmulateViewport(1920, 1080),
-		chromedp.Navigate(params[0]),
-		chromedp.Sleep(time.Second),
-	)
-	ct1, ca1 = context.WithTimeout(ct1, to)
-	defer ca1()
+	ct, ca = context.WithTimeout(ct, to)
+	defer ca()
 	bytes := []byte{}
-	if false {
-		ex(slide, chromedp.Run(ct1,
-			chromedp.Navigate(params[0]+"?rs:Embed=true"),
-		))
-		var (
-			src string
-			ok  bool
-		)
-		ex(slide, chromedp.Run(ct1,
-			chromedp.WaitReady("//iframe"),
-			chromedp.Sleep(time.Second),
-			chromedp.AttributeValue("//iframe", "src", &src, &ok, chromedp.NodeReady),
-		))
-		if !ok {
-			ex(slide, fmt.Errorf("no src of iframe"))
-		}
-		src = strings.Split(src, "&")[0]
-		stdo.Println(src)
-		ex(slide, chromedp.Run(ct1,
-			chromedp.Navigate(src),
-			chromedp.Sleep(time.Second),
-		))
-	}
-	scs(slide, ct1, fmt.Sprintf("%02d iframe.png", slide))
-	cb(slide, ct1, "СЦ")
-	ex(slide, chromedp.Run(ct1,
-		getClientRect("div.imageBackground", &imageBackground, chromedp.NodeVisible),
+	// iframe(slide, ct, params[0])
+	tit := "Navigate"
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	cb(slide, ct, "СЦ")
+
+	ex(slide, dp.Run(ct,
+		getClientRect("div.imageBackground", &imageBackground, dp.NodeVisible),
 	))
-	ex(slide, chromedp.Run(ct1,
-		getClientRect("div.visualContainerHost", &visualContainerHost, chromedp.NodeVisible),
+	ex(slide, dp.Run(ct,
+		getClientRect("div.visualContainerHost", &visualContainerHost, dp.NodeVisible),
 	))
-	ex(slide, chromedp.Run(ct1,
+	ex(slide, dp.Run(ct,
 		FullScreenshot(&bytes, 99, clip(
 			visualContainerHost.X,
 			visualContainerHost.Y,
@@ -86,35 +48,42 @@ func s04(slide int) {
 		)),
 	))
 	ss(bytes).write(fmt.Sprintf("%02d.jpg", slide))
-	stdo.Printf("%02d Done", slide)
+	done(slide)
 }
 
-func cb(slide int, ct1 context.Context, key string) {
-	label := fmt.Sprintf("div[aria-label='%s'] > i", key)
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(label, chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
+func cb(slide int, ctx context.Context, key string) {
+	tit := "СЦ"
+	se := fmt.Sprintf("div[aria-label='%s'] > i", key)
+	ex(slide, dp.Run(ctx,
+		dp.Click(se, dp.NodeVisible),
+		dp.Sleep(ms),
 	))
-	scs(slide, ct1, fmt.Sprintf("%02d СЦ.png", slide))
-	inp := "div.searchHeader.show > input"
-	ex(slide, chromedp.Run(ct1,
-		chromedp.SetValue(inp, sc, chromedp.NodeEnabled, chromedp.NodeVisible),
-		chromedp.SendKeys(inp, kb.Enter),
+	scs(slide, ctx, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = "Поиск"
+	sel := "div.searchHeader.show > input"
+	ex(slide, dp.Run(ctx,
+		dp.SetValue(sel, sc, dp.NodeEnabled, dp.NodeVisible),
+		dp.SendKeys(sel, kb.Enter),
 		// chromedp.SendKeys(inp, sc, chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
+		dp.Sleep(ms),
 	))
-	scs(slide, ct1, fmt.Sprintf("%02d Поиск.png", slide))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(fmt.Sprintf("//span[.='%s']", sc), chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
+	scs(slide, ctx, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = sc
+	sel = fmt.Sprintf("//span[.='%s']", tit)
+	ex(slide, dp.Run(ctx,
+		dp.Click(sel, dp.NodeVisible),
+		dp.Sleep(ms),
 	))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(label, chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
+	ex(slide, dp.Run(ctx,
+		dp.Click(se, dp.NodeVisible),
+		dp.Sleep(ms),
 	))
-	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, sc))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.WaitNotPresent("div.circle"),
-		chromedp.Sleep(time.Second),
+	scs(slide, ctx, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	ex(slide, dp.Run(ctx,
+		dp.WaitNotPresent("div.circle"),
+		dp.Sleep(ms),
 	))
 }

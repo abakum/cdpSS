@@ -4,21 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/chromedp"
+	dp "github.com/chromedp/chromedp"
 )
 
 func s12(slide int) {
-	switch deb {
-	case 0, slide, -slide:
-	default:
-		return
-	}
-	wg.Add(1)
-	defer wg.Done()
 	var (
 		params = conf.P[strconv.Itoa(slide)]
 		vc27,
@@ -26,99 +17,84 @@ func s12(slide int) {
 		vcHost page.Viewport
 	)
 	stdo.Println(params, sc)
-	var (
-		ct1 context.Context
-		ca1 context.CancelFunc
+	ct, ca := chrome()
+	defer ca()
+	dp.Run(ct,
+		EmulateViewport(1920, 1080),
+		dp.Navigate(params[0]),
+		dp.Sleep(sec),
 	)
-	if mb {
-		ctLoc, caLoc := chrome()
-		defer caLoc()
-		ct1, ca1 = chromedp.NewContext(ctLoc)
-	} else {
-		ct1, ca1 = chromedp.NewContext(ctTab)
-	}
-	defer ca1()
-	chromedp.Run(ct1,
-		chromedp.EmulateViewport(1920, 1080),
-		chromedp.Navigate(params[0]),
-		chromedp.Sleep(time.Second),
-	)
-	ct1, ca1 = context.WithTimeout(ct1, to)
-	defer ca1()
-	bytes := []byte{}
-	if false {
-		ex(slide, chromedp.Run(ct1,
-			chromedp.Navigate(params[0]+"?rs:Embed=true"),
-		))
-		var (
-			src string
-			ok  bool
-		)
-		ex(slide, chromedp.Run(ct1,
-			chromedp.WaitReady("//iframe"),
-			chromedp.Sleep(time.Second),
-			chromedp.AttributeValue("//iframe", "src", &src, &ok, chromedp.NodeReady),
-		))
-		if !ok {
-			ex(slide, fmt.Errorf("no src of iframe"))
-		}
-		src = strings.Split(src, "&")[0]
-		stdo.Println(src)
-		ex(slide, chromedp.Run(ct1,
-			chromedp.Navigate(src),
-			chromedp.Sleep(time.Second),
-		))
-	}
-	scs(slide, ct1, fmt.Sprintf("%02d iframe.png", slide))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(fmt.Sprintf("div[aria-label='%s']", params[1]), chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, params[1]))
-	div := "div[aria-label=RF]"
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(div, chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d RF.png", slide))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(fmt.Sprintf("span[title='%s']", params[2]), chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, params[2]))
-	div = "div[aria-label=SC_NAME]"
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(div, chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d SC_NAME.png", slide))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(fmt.Sprintf("span[title='%s']", sc), chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click(div, chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d %s.png", slide, sc))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.WaitNotPresent("div.circle"),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d no circle.png", slide))
+	ct, ca = context.WithTimeout(ct, to)
+	defer ca()
+	// iframe(slide, ct, params[0])
 
-	ex(slide, chromedp.Run(ct1,
-		getClientRect("//*[@id='pvExplorationHost']/div/div/exploration/div/explore-canvas/div/div[2]/div/div[2]/div[2]/visual-container-repeat/visual-container[27]/transform/div/div[3]/div/visual-modern/div/div/div[2]/div[1]/div[3]/div/div[2]",
-			&vc27),
+	tit := "Navigate"
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = params[1]
+	sel := fmt.Sprintf("div[aria-label=%s]", tit)
+	ex(slide, dp.Run(ct,
+		dp.Click(sel, dp.NodeVisible),
+		dp.Sleep(ms),
 	))
-	ex(slide, chromedp.Run(ct1,
-		getClientRect("//*[@id='pvExplorationHost']/div/div/exploration/div/explore-canvas/div/div[2]/div/div[2]/div[2]/visual-container-repeat/visual-container[22]/transform/div/div[3]/div/visual-modern/div/div/div[2]/div[1]/div[4]",
-			&vc22),
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = "RF"
+	sel = fmt.Sprintf("div[aria-label=%s]", tit)
+	ex(slide, dp.Run(ct,
+		dp.Click(sel, dp.NodeVisible),
+		dp.Sleep(ms),
 	))
-	ex(slide, chromedp.Run(ct1,
+
+	tit = params[2]
+	sel = fmt.Sprintf("span[title='%s']", tit)
+	ex(slide, dp.Run(ct,
+		dp.Click(sel, dp.NodeVisible),
+		dp.Sleep(ms),
+	))
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = "SC_NAME"
+	sel = fmt.Sprintf("div[aria-label=%s]", tit)
+	ex(slide, dp.Run(ct,
+		dp.Click(sel, dp.NodeVisible),
+		dp.Sleep(ms),
+	))
+
+	tit = sc
+	se := fmt.Sprintf("span[title='%s']", tit)
+	ex(slide, dp.Run(ct,
+		dp.Click(se, dp.NodeVisible),
+		dp.Sleep(ms),
+	))
+	ex(slide, dp.Run(ct,
+		dp.Click(sel, dp.NodeVisible),
+		dp.Sleep(ms),
+	))
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = "circle"
+	sel = "div.circle"
+	ex(slide, dp.Run(ct,
+		dp.WaitNotPresent(sel),
+		dp.Sleep(ms),
+	))
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	sel = "//*[@id='pvExplorationHost']/div/div/exploration/div/explore-canvas/div/div[2]/div/div[2]/div[2]/visual-container-repeat/visual-container[27]/transform/div/div[3]/div/visual-modern/div/div/div[2]/div[1]/div[3]/div/div[2]"
+	ex(slide, dp.Run(ct,
+		getClientRect(sel, &vc27),
+	))
+	sel = "//*[@id='pvExplorationHost']/div/div/exploration/div/explore-canvas/div/div[2]/div/div[2]/div[2]/visual-container-repeat/visual-container[22]/transform/div/div[3]/div/visual-modern/div/div/div[2]/div[1]/div[4]"
+	ex(slide, dp.Run(ct,
+		getClientRect(sel, &vc22),
+	))
+	ex(slide, dp.Run(ct,
 		getClientRect("div.visualContainerHost", &vcHost),
 	))
-	ex(slide, chromedp.Run(ct1,
+
+	bytes := []byte{}
+	ex(slide, dp.Run(ct,
 		FullScreenshot(&bytes, 99, clip(
 			vcHost.X,
 			vcHost.Y,
@@ -127,5 +103,5 @@ func s12(slide int) {
 		)),
 	))
 	ss(bytes).write(fmt.Sprintf("%02d.jpg", slide))
-	stdo.Printf("%02d Done", slide)
+	done(slide)
 }

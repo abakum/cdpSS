@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"image"
-	"image/jpeg"
-	"image/png"
 	"math"
 	"os"
 	"os/exec"
@@ -14,13 +10,15 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/dom"
+	"github.com/chromedp/cdproto/input"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/chromedp"
+	dp "github.com/chromedp/chromedp"
 	"github.com/xlab/closer"
 )
 
@@ -53,74 +51,14 @@ func (i ss) write(fileName string) {
 	}
 	// exec.Command("rundll32", "url.dll,FileProtocolHandler", fullName).Run()
 	exec.Command("cmd", "/c", "start", "chrome", fullName).Run()
+	// stdo.Println(src(8), fullName)
 }
 
-type ii struct {
-	img image.Image
-	err error
-	png []byte
-}
-
-func ssII(i *ii) (o *ii) { //Beginning of the pipe
-	o = i
-	o.img, o.err = png.Decode(bytes.NewReader(i.png))
-	return
-}
-
-func (i *ii) crop(crop image.Rectangle) (o *ii) { //Middle of the pipe
-	o = &ii{err: i.err}
-	if i.err != nil {
-		return
-	}
-	type subImager interface {
-		SubImage(ir image.Rectangle) image.Image
-	}
-	// i.img is an Image interface. This checks if the underlying value has a
-	// method called SubImage. If it does, then we can use SubImage to crop the
-	// image.
-	sImg, ok := i.img.(subImager)
-	if !ok {
-		o.img = i.img
-		o.err = fmt.Errorf("image does not support cropping")
-		return
-	}
-	o.img = sImg.SubImage(crop)
-	return
-}
-
-func (i *ii) write(fileName string) (err error) { //Pipe end
-	err = i.err
-	if err != nil {
-		return
-	}
-	fullName := filepath.Join(root, doc, fileName)
-	jpg := strings.HasSuffix(fileName, ".jpg")
-	if jpg {
-		fullName = filepath.Join(root, fileName)
-	}
-	file, err := os.Create(fullName)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-	if jpg {
-		err = jpeg.Encode(file, i.img, &jpeg.Options{Quality: 100})
-	} else {
-		err = png.Encode(file, i.img)
-	}
-	if err != nil {
-		return
-	}
-	// err = exec.Command("rundll32", "url.dll,FileProtocolHandler", fullName).Run()
-	// err = exec.Command("powershell", "Start-Process", "chrome", "-argumentlist", fullName).Run()
-	err = exec.Command("cmd", "/c", "start", "chrome", fullName).Run()
-	// err = exec.Command(chromeBin, fullName).Run()
-	return
-}
 func ex(slide int, err error) {
 	if err != nil {
 		exit = slide
 		stdo.Println(src(8), err.Error())
+		Scanln()
 		closer.Close()
 	}
 }
@@ -135,12 +73,12 @@ func src(deep int) (s string) {
 	return
 }
 
-func Screenshot(sel interface{}, picbuf *[]byte, quality int, opts ...chromedp.QueryOption) chromedp.QueryAction {
+func Screenshot(sel interface{}, picbuf *[]byte, quality int, opts ...dp.QueryOption) dp.QueryAction {
 	if picbuf == nil {
 		panic("picbuf cannot be nil")
 	}
 
-	return chromedp.QueryAfter(sel, func(ctx context.Context, execCtx runtime.ExecutionContextID, nodes ...*cdp.Node) error {
+	return dp.QueryAfter(sel, func(ctx context.Context, execCtx runtime.ExecutionContextID, nodes ...*cdp.Node) error {
 		if len(nodes) < 1 {
 			return fmt.Errorf("selector %q did not return any nodes", sel)
 		}
@@ -179,16 +117,16 @@ func Screenshot(sel interface{}, picbuf *[]byte, quality int, opts ...chromedp.Q
 
 		*picbuf = buf
 		return nil
-	}, append(opts, chromedp.NodeVisible)...)
+	}, append(opts, dp.NodeVisible)...)
 }
-func FullScreenshot(res *[]byte, quality int, clip *page.Viewport) chromedp.EmulateAction {
+func FullScreenshot(res *[]byte, quality int, clip *page.Viewport) dp.EmulateAction {
 	if res == nil {
 		panic("res cannot be nil")
 	}
 	if clip == nil {
 		panic("clip cannot be nil")
 	}
-	return chromedp.ActionFunc(func(ctx context.Context) error {
+	return dp.ActionFunc(func(ctx context.Context) error {
 		format := page.CaptureScreenshotFormatPng
 		if quality != 100 {
 			format = page.CaptureScreenshotFormatJpeg
@@ -210,12 +148,12 @@ func FullScreenshot(res *[]byte, quality int, clip *page.Viewport) chromedp.Emul
 	})
 }
 
-func getClientRect(sel interface{}, clip *page.Viewport, opts ...chromedp.QueryOption) chromedp.QueryAction {
+func getClientRect(sel interface{}, clip *page.Viewport, opts ...dp.QueryOption) dp.QueryAction {
 	if clip == nil {
 		panic("clip cannot be nil")
 	}
 
-	return chromedp.QueryAfter(sel, func(ctx context.Context, execCtx runtime.ExecutionContextID, nodes ...*cdp.Node) error {
+	return dp.QueryAfter(sel, func(ctx context.Context, execCtx runtime.ExecutionContextID, nodes ...*cdp.Node) error {
 		if len(nodes) < 1 {
 			return fmt.Errorf("selector %q did not return any nodes", sel)
 		}
@@ -238,7 +176,7 @@ func getClientRect(sel interface{}, clip *page.Viewport, opts ...chromedp.QueryO
 
 		*clip = Viewport
 		return nil
-	}, append(opts, chromedp.NodeVisible)...)
+	}, append(opts, dp.NodeVisible)...)
 }
 
 func callFunctionOnNode(ctx context.Context, node *cdp.Node, function string, res interface{}, args ...interface{}) error {
@@ -246,7 +184,7 @@ func callFunctionOnNode(ctx context.Context, node *cdp.Node, function string, re
 	if err != nil {
 		return err
 	}
-	err = chromedp.CallFunctionOn(function, res,
+	err = dp.CallFunctionOn(function, res,
 		func(p *runtime.CallFunctionOnParams) *runtime.CallFunctionOnParams {
 			return p.WithObjectID(r.ObjectID)
 		},
@@ -288,35 +226,185 @@ func clip(X, Y, Width, Height float64) *page.Viewport {
 }
 
 func scs(slide int, ct1 context.Context, fn string) {
+	stdo.Println(src(8), fn)
+	if deb != slide {
+		return
+	}
 	bytes := []byte{}
-	if deb == slide {
-		if chromedp.Run(ct1, chromedp.FullScreenshot(&bytes, 100)) == nil {
-			ss(bytes).write(fn)
-		}
+	if dp.Run(ct1, dp.FullScreenshot(&bytes, 100)) == nil {
+		ss(bytes).write(fn)
 	}
 }
 
-func chrome() (ctTab context.Context, caTab context.CancelFunc) {
-	ctExe, _ := chromedp.NewExecAllocator(ctRoot, options...)
-	ctTab, caTab = chromedp.NewContext(ctExe)
-	// first tab create browser instance
-	if !mb {
-		ex(deb, chromedp.Run(ctTab,
-			chromedp.EmulateViewport(1920, 1080),
-			chromedp.Navigate("about:blank"),
-		))
-		time.AfterFunc(time.Second*3, func() {
-			// close empty tab
-			chromedp.Run(ctTab, chromedp.Evaluate("window.close();", nil))
-		})
+func chrome() (ct1 context.Context, ca1 context.CancelFunc) {
+	if multiBrowser {
+		ctExe, _ := dp.NewExecAllocator(ctRoot, options...)
+		ct1, ca1 = dp.NewContext(ctExe)
+	} else {
+		ct1, ca1 = dp.NewContext(ctTab)
 	}
 	return
 }
-func exeFN() (string, error) {
+func exeFN() (string, string, error) {
 	exe, err := os.Executable()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	_, exeN := filepath.Split(exe)
-	return strings.TrimSuffix(exeN, filepath.Ext(exeN)), err
+	return exeN, strings.TrimSuffix(exeN, filepath.Ext(exeN)), err
+}
+
+// MouseMoveXY is an action that sends a mouse move event to the X, Y location.
+func MouseMoveXY(x, y float64, opts ...dp.MouseOption) dp.MouseAction {
+	return dp.ActionFunc(func(ctx context.Context) error {
+		p := &input.DispatchMouseEventParams{
+			Type: input.MouseMoved,
+			X:    x,
+			Y:    y,
+		}
+
+		// apply opts
+		for _, o := range opts {
+			p = o(p)
+		}
+
+		if err := p.Do(ctx); err != nil {
+			return err
+		}
+
+		return p.Do(ctx)
+	})
+}
+
+// MouseMoveNode is an action that dispatches a mouse move event
+// at the center of a specified node.
+//
+// Note that the window will be scrolled if the node is not within the window's
+// viewport.
+func MouseMoveNode(n *cdp.Node, opts ...dp.MouseOption) dp.MouseAction {
+	return dp.ActionFunc(func(ctx context.Context) error {
+		t := cdp.ExecutorFromContext(ctx).(*dp.Target)
+		if t == nil {
+			return dp.ErrInvalidTarget
+		}
+
+		if err := dom.ScrollIntoViewIfNeeded().WithNodeID(n.NodeID).Do(ctx); err != nil {
+			return err
+		}
+
+		boxes, err := dom.GetContentQuads().WithNodeID(n.NodeID).Do(ctx)
+		if err != nil {
+			return err
+		}
+
+		if len(boxes) == 0 {
+			return dp.ErrInvalidDimensions
+		}
+
+		content := boxes[0]
+
+		c := len(content)
+		if c%2 != 0 || c < 1 {
+			return dp.ErrInvalidDimensions
+		}
+
+		var x, y float64
+		for i := 0; i < c; i += 2 {
+			x += content[i]
+			y += content[i+1]
+		}
+		x /= float64(c / 2)
+		y /= float64(c / 2)
+
+		return MouseMoveXY(x, y, opts...).Do(ctx)
+	})
+}
+
+// MouseMove is an element query action that sends a mouse move event to the first element
+// node matching the selector.
+func MouseMove(sel interface{}, opts ...dp.QueryOption) dp.QueryAction {
+	return dp.QueryAfter(sel, func(ctx context.Context, execCtx runtime.ExecutionContextID, nodes ...*cdp.Node) error {
+		if len(nodes) < 1 {
+			return fmt.Errorf("selector %q did not return any nodes", sel)
+		}
+
+		return MouseMoveNode(nodes[0]).Do(ctx)
+	}, append(opts, dp.NodeVisible)...)
+}
+
+func taskKill(arg ...string) {
+	cmd := exec.Command("taskKill.exe", arg...)
+	stdo.Println(src(8), cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
+func taskList(arg ...string) {
+	cmd := exec.Command("tasklist.exe", arg...)
+	stdo.Println(src(8), cmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
+
+func RunTO(ctx context.Context, to time.Duration, actions ...dp.Action) (cty context.Context, cay context.CancelFunc, err error) {
+	cty, cay = context.WithTimeout(ctx, to)
+	err = dp.Run(cty, actions...)
+	return
+}
+func Run(ctx context.Context, to time.Duration, actions ...dp.Action) error {
+	cty, cay := context.WithTimeout(ctx, to)
+	defer cay()
+	return dp.Run(cty, actions...)
+}
+func Scanln() {
+	if headLess {
+		return
+	}
+	stdo.Print(src(8), "Press Enter>")
+	fmt.Scanln()
+}
+func start(fu func(slide int), slide int, wg *sync.WaitGroup) {
+	switch deb {
+	case 0, slide, -slide:
+	default:
+		return
+	}
+	if wg != nil {
+		wg.Add(1)
+		defer wg.Done()
+	}
+	fu(slide)
+}
+func EmulateViewport(width, height int64, opts ...dp.EmulateViewportOption) dp.EmulateAction {
+	if headLess {
+		return dp.EmulateViewport(width, height, opts...)
+	}
+	return dp.ResetViewport()
+}
+func done(slide int) {
+	stdo.Printf("%02d Done\n", slide)
+}
+func iframe(slide int, ct context.Context, url string) {
+	ex(slide, dp.Run(ct,
+		dp.Navigate(url+"?rs:Embed=true"),
+	))
+	var (
+		src string
+		ok  bool
+	)
+	ex(slide, dp.Run(ct,
+		dp.WaitReady("//iframe"),
+		dp.Sleep(sec),
+		dp.AttributeValue("//iframe", "src", &src, &ok, dp.NodeReady),
+	))
+	if !ok {
+		ex(slide, fmt.Errorf("no src of iframe"))
+	}
+	src = strings.Split(src, "&")[0]
+	stdo.Println(src)
+	ex(slide, dp.Run(ct,
+		dp.Navigate(src),
+		dp.Sleep(sec),
+	))
 }

@@ -8,11 +8,6 @@ import (
 )
 
 func s09(slide int) {
-	switch deb {
-	case 0, slide, -slide:
-	default:
-		return
-	}
 	err := exec.Command("cmd", "/c", "start", filepath.Join(cd, "imager.xlsb")).Run()
 	ex(slide, err)
 	for _, v := range []int{2, 7, 8, 9} {
@@ -22,5 +17,5 @@ func s09(slide int) {
 			return
 		}
 	}
-	stdo.Printf("%02d Done", slide)
+	done(slide)
 }

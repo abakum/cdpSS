@@ -4,21 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/chromedp"
+	dp "github.com/chromedp/chromedp"
 )
 
 func s05(slide int) {
-	switch deb {
-	case 0, slide, -slide:
-	default:
-		return
-	}
-	wg.Add(1)
-	defer wg.Done()
 	var (
 		params = conf.P[strconv.Itoa(slide)]
 		title,
@@ -26,67 +17,48 @@ func s05(slide int) {
 		visualContainerHost page.Viewport
 	)
 	stdo.Println(params, sc)
-	var (
-		ct1 context.Context
-		ca1 context.CancelFunc
+	ct, ca := chrome()
+	defer ca()
+	dp.Run(ct,
+		EmulateViewport(1920, 1080),
+		dp.Navigate(params[0]),
+		dp.Sleep(sec),
 	)
-	if mb {
-		ctLoc, caLoc := chrome()
-		defer caLoc()
-		ct1, ca1 = chromedp.NewContext(ctLoc)
-	} else {
-		ct1, ca1 = chromedp.NewContext(ctTab)
-	}
-	defer ca1()
-	chromedp.Run(ct1,
-		chromedp.EmulateViewport(1920, 1080),
-		chromedp.Navigate(params[0]),
-		chromedp.Sleep(time.Second),
-	)
-	ct1, ca1 = context.WithTimeout(ct1, to)
-	defer ca1()
+	ct, ca = context.WithTimeout(ct, to)
+	defer ca()
+	// iframe(slide, ct, params[0])
+
+	tit := "Navigate"
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = "Статистика по сотрудникам"
+	sel := fmt.Sprintf("div[title='%s']", tit)
+	ex(slide, dp.Run(ct,
+		dp.Click(sel, dp.NodeVisible),
+		dp.Sleep(ms),
+	))
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	cb(slide, ct, "СЦ/ЦЭ")
+
+	tit = "Ср. длительность работ сотрудника за день, часы"
+	sel = fmt.Sprintf("div[title='%s']", tit)
+	ex(slide, dp.Run(ct,
+		getClientRect(sel, &title, dp.NodeVisible),
+	))
+	sel = "div.innerContainer"
+	ex(slide, dp.Run(ct,
+		getClientRect(sel, &innerContainer, dp.NodeVisible),
+	))
+	tit = "visualContainerHost"
+	sel = "div.visualContainerHost"
+	ex(slide, dp.Run(ct,
+		getClientRect(sel, &visualContainerHost, dp.NodeVisible),
+	))
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
 	bytes := []byte{}
-	if false {
-		ex(slide, chromedp.Run(ct1,
-			chromedp.Navigate(params[0]+"?rs:Embed=true"),
-		))
-		var (
-			src string
-			ok  bool
-		)
-		ex(slide, chromedp.Run(ct1,
-			chromedp.WaitReady("//iframe"),
-			chromedp.Sleep(time.Second),
-			chromedp.AttributeValue("//iframe", "src", &src, &ok, chromedp.NodeReady),
-		))
-		if !ok {
-			ex(slide, fmt.Errorf("no src of iframe"))
-		}
-		src = strings.Split(src, "&")[0]
-		stdo.Println(src)
-		ex(slide, chromedp.Run(ct1,
-			chromedp.Navigate(src),
-			chromedp.Sleep(time.Second),
-		))
-	}
-	scs(slide, ct1, fmt.Sprintf("%02d iframe.png", slide))
-	ex(slide, chromedp.Run(ct1,
-		chromedp.Click("div[title='Статистика по сотрудникам']", chromedp.NodeVisible),
-		chromedp.Sleep(time.Second),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d Статистика по сотрудникам.png", slide))
-	cb(slide, ct1, "СЦ/ЦЭ")
-	ex(slide, chromedp.Run(ct1,
-		getClientRect("div[title='Ср. длительность работ сотрудника за день, часы']", &title, chromedp.NodeVisible),
-	))
-	ex(slide, chromedp.Run(ct1,
-		getClientRect("div.innerContainer", &innerContainer, chromedp.NodeVisible),
-	))
-	ex(slide, chromedp.Run(ct1,
-		getClientRect("div.visualContainerHost", &visualContainerHost, chromedp.NodeVisible),
-	))
-	scs(slide, ct1, fmt.Sprintf("%02d visualContainerHost.png", slide))
-	ex(slide, chromedp.Run(ct1,
+	ex(slide, dp.Run(ct,
 		FullScreenshot(&bytes, 99, clip(
 			visualContainerHost.X,
 			visualContainerHost.Y,
@@ -95,5 +67,5 @@ func s05(slide int) {
 		)),
 	))
 	ss(bytes).write(fmt.Sprintf("%02d.jpg", slide))
-	stdo.Printf("%02d Done", slide)
+	done(slide)
 }
