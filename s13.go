@@ -35,7 +35,7 @@ func s13(slide int) {
 	))
 
 	tit = params[1]
-	sel = fmt.Sprintf("span[title='%s']", tit)
+	sel = fmt.Sprintf("span[title=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
@@ -43,14 +43,14 @@ func s13(slide int) {
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "РФ"
-	sel = fmt.Sprintf("div[aria-label='%s']", tit)
+	sel = fmt.Sprintf("div[aria-label=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
 	))
 
 	tit = rf
-	sel = fmt.Sprintf("span[title='%s']", tit)
+	sel = fmt.Sprintf("span[title=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
@@ -58,14 +58,14 @@ func s13(slide int) {
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "СЦ"
-	se := fmt.Sprintf("div[aria-label='%s']", tit)
+	se := fmt.Sprintf("div[aria-label=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(se, dp.NodeVisible),
 		dp.Sleep(ms),
 	))
 
 	tit = sc
-	sel = fmt.Sprintf("span[title='%s']", tit)
+	sel = fmt.Sprintf("span[title=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
@@ -77,14 +77,14 @@ func s13(slide int) {
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "Кавр.Динамика по:"
-	sel = fmt.Sprintf("//*[text()='%s']", tit)
+	sel = fmt.Sprintf("//*[text()=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.WaitVisible(sel),
 	))
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "Пред.Неделя"
-	sel = fmt.Sprintf("//*[text()='%s']", tit)
+	sel = fmt.Sprintf("//*[text()=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.WaitVisible(sel),
 	))

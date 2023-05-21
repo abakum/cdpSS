@@ -47,7 +47,7 @@ func s12(slide int) {
 	))
 
 	tit = params[2]
-	sel = fmt.Sprintf("span[title='%s']", tit)
+	sel = fmt.Sprintf("span[title=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
@@ -62,7 +62,7 @@ func s12(slide int) {
 	))
 
 	tit = sc
-	se := fmt.Sprintf("span[title='%s']", tit)
+	se := fmt.Sprintf("span[title=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(se, dp.NodeVisible),
 		dp.Sleep(ms),

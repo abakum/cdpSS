@@ -55,7 +55,7 @@ func s08(slide int) {
 		))
 
 		tit = "Войти"
-		sel = fmt.Sprintf("//span[.='%s']", tit)
+		sel = fmt.Sprintf("//span[.=%q]", tit)
 		ex(slide, dp.Run(ct,
 			// chromedp.SendKeys(input, kb.Enter, chromedp.NodeEnabled),
 			// chromedp.Click("#login_form-submit", chromedp.NodeEnabled),
@@ -66,7 +66,7 @@ func s08(slide int) {
 	}
 
 	tit = "По работникам и типу задачи"
-	sel = fmt.Sprintf("//span[.='%s']", tit)
+	sel = fmt.Sprintf("//span[.=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeEnabled),
 		dp.Sleep(sec),
@@ -74,7 +74,7 @@ func s08(slide int) {
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "месяцы"
-	sel = fmt.Sprintf("//span[.='%s']", tit)
+	sel = fmt.Sprintf("//span[.=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeEnabled),
 		dp.Sleep(sec),
@@ -104,20 +104,20 @@ func s08(slide int) {
 	}
 
 	tit = "Группа инсталляций"
-	sel = fmt.Sprintf("//span[.='%s']", tit)
+	sel = fmt.Sprintf("//span[.=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeEnabled),
 		dp.Sleep(ms*3),
 	))
 	tit = "Группа клиентского сервиса"
-	sel = fmt.Sprintf("//span[.='%s']", tit)
+	sel = fmt.Sprintf("//span[.=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeEnabled),
 		dp.Sleep(ms*3),
 	))
 
 	tit = "ОК"
-	sel = fmt.Sprintf("//span[.='%s']", tit)
+	sel = fmt.Sprintf("//span[.=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible, dp.NodeEnabled),
 		dp.Sleep(ms),
@@ -136,7 +136,7 @@ func s08(slide int) {
 	))
 
 	tit = "EXCEL"
-	sel = fmt.Sprintf("//span[.='%s']", tit)
+	sel = fmt.Sprintf("//span[.=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible, dp.NodeEnabled),
 		dp.Sleep(sec), //for download

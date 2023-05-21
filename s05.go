@@ -32,7 +32,7 @@ func s05(slide int) {
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "Статистика по сотрудникам"
-	sel := fmt.Sprintf("div[title='%s']", tit)
+	sel := fmt.Sprintf("div[title=%q]", tit)
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
@@ -42,7 +42,7 @@ func s05(slide int) {
 	cb(slide, ct, "СЦ/ЦЭ")
 
 	tit = "Ср. длительность работ сотрудника за день, часы"
-	sel = fmt.Sprintf("div[title='%s']", tit)
+	sel = fmt.Sprintf("div[title=%q]", tit)
 	ex(slide, dp.Run(ct,
 		getClientRect(sel, &title, dp.NodeVisible),
 	))

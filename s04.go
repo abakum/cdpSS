@@ -53,7 +53,7 @@ func s04(slide int) {
 
 func cb(slide int, ctx context.Context, key string) {
 	tit := "СЦ"
-	se := fmt.Sprintf("div[aria-label='%s'] > i", key)
+	se := fmt.Sprintf("div[aria-label=%q] > i", key)
 	ex(slide, dp.Run(ctx,
 		dp.Click(se, dp.NodeVisible),
 		dp.Sleep(ms),
@@ -72,7 +72,7 @@ func cb(slide int, ctx context.Context, key string) {
 	scs(slide, ctx, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = sc
-	sel = fmt.Sprintf("//span[.='%s']", tit)
+	sel = fmt.Sprintf("//span[.=%q]", tit)
 	ex(slide, dp.Run(ctx,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),

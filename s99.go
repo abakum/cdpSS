@@ -12,8 +12,6 @@ import (
 func s99(slide int) {
 	var (
 		params = conf.P[strconv.Itoa(abs(slide))]
-		sel    string
-		tit    string
 		err    error
 	)
 	stdo.Println(params)
@@ -24,35 +22,45 @@ func s99(slide int) {
 		dp.Navigate(params[0]),
 		dp.Sleep(sec),
 	)
-	scs(slide, ct, fmt.Sprintf("%02d get.png", slide))
-	sel = "input[name='ar-user-name']"
-	ct2, ca2, err := RunTO(ct, sec*13,
+	tit := "Navigate"
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+	tit = "ar-user-name"
+	sel := fmt.Sprintf("input[name=%q]", tit)
+	err = Run(ct, sec*3,
 		dp.Click(sel, dp.ByQuery, dp.NodeVisible, dp.NodeEnabled),
 		dp.Sleep(ms),
 		dp.SendKeys(sel, params[1], dp.ByQuery, dp.NodeVisible),
 		dp.Sleep(ms),
 	)
-	defer ca2()
-	stdo.Println(sel, err)
+	stdo.Println(tit, err)
 	if err == nil {
-		ex(slide, dp.Run(ct2,
-			dp.Click("button[type=submit]", dp.ByQuery, dp.NodeEnabled),
+		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+		tit = "submit"
+		sel = fmt.Sprintf("button[type=%q]", tit)
+		ex(slide, dp.Run(ct,
+			dp.Click(sel, dp.ByQuery, dp.NodeEnabled),
 			dp.Sleep(ms),
 		))
-		scs(slide, ct2, fmt.Sprintf("%02d %s.png", slide, "ar-user-name"))
-		sel = "input[name='ar-user-password']"
-		ex(slide, dp.Run(ct2,
+
+		tit = "ar-user-password"
+		sel = fmt.Sprintf("input[name=%q]", tit)
+		ex(slide, dp.Run(ct,
 			dp.Click(sel, dp.ByQuery, dp.NodeVisible, dp.NodeEnabled),
 			dp.Sleep(ms),
 			dp.SendKeys(sel, params[2], dp.ByQuery, dp.NodeVisible),
 			dp.Sleep(ms),
 		))
-		ex(slide, dp.Run(ct2,
-			dp.Click("button[type='submit']", dp.ByQuery, dp.NodeEnabled),
+		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
+		tit = "submit"
+		sel = fmt.Sprintf("button[type=%q]", tit)
+		ex(slide, dp.Run(ct,
+			dp.Click(sel, dp.ByQuery, dp.NodeEnabled),
 			dp.Sleep(ms),
 		))
-		scs(slide, ct2, fmt.Sprintf("%02d %s.png", slide, "ar-user-password"))
 	}
+
 	tit = "Редактировать"
 	sel = "div.multiBtnInner_xbp:nth-child(1)"
 	ex(slide, dp.Run(ct,
@@ -62,17 +70,20 @@ func s99(slide int) {
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "Удалить"
-	se := "button.menu-button_J9B"
-	sel = "button.align-left_-232488494:nth-child(3)"
-	ct3, ca3, err := RunTO(ct, sec*7,
-		dp.Click(se, dp.ByQuery, dp.NodeVisible),
-		dp.Sleep(ms),
+	sel = "button.menu-button_J9B"
+	err = Run(ct, sec,
 		dp.Click(sel, dp.ByQuery, dp.NodeVisible),
 		dp.Sleep(ms),
 	)
-	defer ca3()
 	stdo.Println(tit, err)
-	scs(slide, ct3, fmt.Sprintf("%02d %s.png", slide, tit))
+	if err == nil {
+		sel = "button.align-left_-232488494:nth-child(3)"
+		ex(slide, dp.Run(ct,
+			dp.Click(sel, dp.ByQuery, dp.NodeVisible),
+			dp.Sleep(ms),
+		))
+	}
+
 	tit = "Файл"
 	sel = "button.addFilesBtn_RvX"
 	ex(slide, dp.Run(ct,
@@ -86,6 +97,7 @@ func s99(slide int) {
 	))
 	upload = true
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+
 	sel = "input[type=file]"
 	files := []string{filepath.Join(root, mov)}
 	stdo.Println(files)
@@ -93,51 +105,54 @@ func s99(slide int) {
 		dp.SetUploadFiles(sel, files, dp.ByQuery),
 		dp.Sleep(ms),
 	))
-	tit = "Загрузка"
-	if false {
-		Run(ct, sec*7,
-			dp.WaitVisible(fmt.Sprintf("//*[contains(text(),'%s')]", tit)),
-			// dp.WaitVisible(tit, dp.BySearch), //no node
-		)
-		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
-		stdo.Println(tit, err)
-	} else {
-		ct4, ca4, err := RunTO(ct, sec*7,
-			dp.WaitVisible(fmt.Sprintf("//*[contains(text(),'%s')]", tit)),
-		)
-		defer ca4()
-		scs(slide, ct4, fmt.Sprintf("%02d %s.png", slide, tit))
-		stdo.Println(tit, err)
-	}
 
-	tit = "отменена"
-	ct5, ca5, err := RunTO(ct, sec*3,
-		dp.WaitVisible(fmt.Sprintf("//*[contains(text(),'%s')]", tit)),
+	tit = "Загрузка"
+	sel = fmt.Sprintf("//*[contains(text(),%q)]", tit)
+	err = Run(ct, sec*3,
+		dp.WaitVisible(sel),
+		// dp.WaitVisible(tit, dp.BySearch), //no node
 	)
-	defer ca5()
-	stdo.Println(tit, err)
-	if err == nil {
-		scs(slide, ct5, fmt.Sprintf("%02d %s.png", slide, tit))
-		Scanln()
-		return
-	}
-	tit = "завершена"
-	ct6, ca6, err := RunTO(ct, sec*7,
-		dp.WaitVisible(fmt.Sprintf("//*[contains(text(),'%s')]", tit)),
-	)
-	defer ca6()
 	stdo.Println(tit, err)
 	if err != nil {
-		scs(slide, ct6, fmt.Sprintf("%02d %s.png", slide, "Загрузка НЕ завершена"))
+		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, "Загрузка НЕ началась"))
 		Scanln()
 		return
 	}
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
-	time.Sleep(sec * 7)
+
+	tit = "отменена"
+	sel = fmt.Sprintf("//*[contains(text(),%q)]", tit)
+	err = Run(ct, sec*3,
+		dp.WaitVisible(sel),
+	)
+	stdo.Println(tit, err)
+	if err == nil {
+		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+		Scanln()
+		return
+	}
+
+	tit = "завершена"
+	sel = fmt.Sprintf("//*[contains(text(),%q)]", tit)
+	err = Run(ct, sec*7,
+		dp.WaitVisible(sel),
+	)
+	stdo.Println(tit, err)
+	if err != nil {
+		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, "Загрузка НЕ завершена"))
+		Scanln()
+		return
+	}
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+	time.Sleep(sec * 3)
+
+	tit = "Сохранить и закрыть"
+	sel = "div.multiBtnInner_xbp:nth-child(4)"
 	ex(slide, dp.Run(ct,
-		dp.Click("div.multiBtnInner_xbp:nth-child(4)", dp.ByQuery, dp.NodeEnabled),
-		dp.Sleep(sec),
+		dp.Click(sel, dp.ByQuery, dp.NodeEnabled),
+		dp.Sleep(ms),
 	))
+
 	scs(deb, ct, fmt.Sprintf("%02d.png", slide))
 	done(slide)
 }
