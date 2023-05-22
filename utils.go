@@ -22,12 +22,6 @@ import (
 	"github.com/xlab/closer"
 )
 
-func sErr(s string, err error) string {
-	if err != nil {
-		return err.Error()
-	}
-	return s
-}
 func i2p(v int) (fn string) {
 	fn = fmt.Sprintf("%02d.jpg", v)
 	if v == 97 {
@@ -339,19 +333,12 @@ func taskKill(arg ...string) {
 	cmd.Stderr = os.Stderr
 	cmd.Run()
 }
-func taskList(arg ...string) {
-	cmd := exec.Command("tasklist.exe", arg...)
-	stdo.Println(src(8), cmd)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-}
 
-func RunTO(ctx context.Context, to time.Duration, actions ...dp.Action) (cty context.Context, cay context.CancelFunc, err error) {
-	cty, cay = context.WithTimeout(ctx, to)
-	err = dp.Run(cty, actions...)
-	return
-}
+//	func RunTO(ctx context.Context, to time.Duration, actions ...dp.Action) (cty context.Context, cay context.CancelFunc, err error) {
+//		cty, cay = context.WithTimeout(ctx, to)
+//		err = dp.Run(cty, actions...)
+//		return
+//	}
 func Run(ctx context.Context, to time.Duration, actions ...dp.Action) error {
 	cty, cay := context.WithTimeout(ctx, to)
 	defer cay()

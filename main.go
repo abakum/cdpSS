@@ -39,6 +39,7 @@ var (
 	multiBrowser = true
 	headLess     = true
 	upload       = false
+	sequentially = false
 )
 
 func main() {
@@ -64,8 +65,7 @@ func main() {
 		}
 		switch i {
 		case 0:
-			multiBrowser = true
-			headLess = true
+			multiBrowser = false
 			continue
 		case 2:
 			headLess = false
@@ -73,12 +73,16 @@ func main() {
 		case -2:
 			multiBrowser = true
 			continue
-		case 3:
+		case 3, 6:
 			slides = []int{1, 4, 5, 8, 12, 13}
-		case -3:
+		case -3, -6:
 			slides = []int{-1, -4, -5, -8, -12, -13}
 		}
 		if abs(i) == 3 {
+			break
+		}
+		if abs(i) == 6 {
+			sequentially = true
 			break
 		}
 		slides = append(slides, i)
@@ -142,9 +146,9 @@ func main() {
 		ex(deb, dp.Run(ctTab, // first Run create browser instance
 			dp.Navigate("about:blank"),
 		))
-		time.AfterFunc(sec*3, func() {
-			dp.Run(ctTab, dp.Evaluate("window.close();", nil)) // close empty tab
-		})
+		// time.AfterFunc(sec*3, func() {
+		// 	dp.Run(ctTab, dp.Evaluate("window.close();", nil)) // close empty tab
+		// })
 	}
 	closer.Bind(func() {
 		deb = 2 //exit
@@ -167,7 +171,7 @@ func main() {
 	started := make(chan bool, 10)
 	autoStart(started, sec) //for wg.Add
 	for _, de := range slides {
-		stdo.Println(de, "multiBrowser:", multiBrowser, "headLess:", headLess)
+		stdo.Println(de, "multiBrowser:", multiBrowser, "headLess:", headLess, "sequentially:", sequentially)
 		deb = de
 		go start(s01, 1, &wg, started)
 		go start(s04, 4, &wg, started)
@@ -175,9 +179,16 @@ func main() {
 		go start(s08, 8, &wg, started)
 		go start(s12, 12, &wg, started)
 		go start(s13, 13, &wg, started)
+		if sequentially {
+			<-started //for wg.Add
+			wg.Wait()
+			autoStart(started, sec) //for wg.Add
+		}
 	}
-	<-started //for wg.Add
-	wg.Wait()
+	if !sequentially {
+		<-started //for wg.Add
+		wg.Wait()
+	}
 	start(s97, 97, nil, nil)        //bat jpgs to mov
 	autoStart(started, sec)         //for wg.Add
 	go start(s98, 98, &wg, started) //telegram

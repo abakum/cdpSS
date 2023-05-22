@@ -11,6 +11,7 @@ import (
 func s13(slide int) {
 	var (
 		params = conf.P[strconv.Itoa(abs(slide))]
+		tit    string
 	)
 	stdo.Println(params, sc, rf)
 	ct, ca := chrome()
@@ -19,13 +20,12 @@ func s13(slide int) {
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
 		dp.Sleep(sec),
+		dp.Title(&tit),
 	)
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 	ct, ca = context.WithTimeout(ct, to)
 	defer ca()
 	// iframe(slide, ct, params[0])
-
-	tit := "Navigate"
-	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "mrf"
 	sel := fmt.Sprintf("div[aria-label=%s]", tit)
@@ -36,7 +36,7 @@ func s13(slide int) {
 
 	tit = params[1]
 	sel = fmt.Sprintf("span[title=%q]", tit)
-	ex(slide, dp.Run(ct,
+	ex(slide, Run(ct, to*2,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
 	))
@@ -51,7 +51,7 @@ func s13(slide int) {
 
 	tit = rf
 	sel = fmt.Sprintf("span[title=%q]", tit)
-	ex(slide, dp.Run(ct,
+	ex(slide, Run(ct, to*2,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
 	))

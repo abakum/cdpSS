@@ -15,6 +15,7 @@ func s05(slide int) {
 		title,
 		innerContainer,
 		visualContainerHost page.Viewport
+		tit string
 	)
 	stdo.Println(params, sc)
 	ct, ca := chrome()
@@ -23,13 +24,12 @@ func s05(slide int) {
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
 		dp.Sleep(sec),
+		dp.Title(&tit),
 	)
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 	ct, ca = context.WithTimeout(ct, to)
 	defer ca()
 	// iframe(slide, ct, params[0])
-
-	tit := "Navigate"
-	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	tit = "Статистика по сотрудникам"
 	sel := fmt.Sprintf("div[title=%q]", tit)

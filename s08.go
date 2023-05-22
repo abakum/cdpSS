@@ -17,6 +17,7 @@ func s08(slide int) {
 		TaskClosed = "TaskClosed.xlsx"
 		params     = conf.P[strconv.Itoa(abs(slide))]
 		nodes      []*cdp.Node
+		tit        string
 	)
 	stdo.Println(params)
 	ct, ca := chrome()
@@ -26,27 +27,33 @@ func s08(slide int) {
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
 		dp.Sleep(sec),
+		dp.Title(&tit),
 	)
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 	ct, ca = context.WithTimeout(ct, to)
 	defer ca()
 
-	tit := "Navigate"
-	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
-
 	sel := "#login_form-username"
-	_, ca2, _ := RunTO(ct, sec,
-		dp.Nodes(sel, &nodes),
+	err := Run(ct, sec*3,
+		// chromedp.MouseClickNode(nodes[0]),
+		dp.SetValue(sel, params[1], dp.NodeEnabled),
+		// dp.SendKeys(sel, params[1], dp.NodeEnabled),
+		dp.Sleep(ms),
 	)
-	defer ca2()
-	stdo.Println(sel, len(nodes))
+	// Run(ct, sec,
+	// 	dp.Nodes(sel, &nodes),
+	// )
+	// stdo.Println(sel, len(nodes))
 
-	if len(nodes) > 0 {
-		ex(slide, dp.Run(ct,
-			// chromedp.MouseClickNode(nodes[0]),
-			dp.SetValue(sel, params[1], dp.NodeEnabled),
-			// dp.SendKeys(sel, params[1], dp.NodeEnabled),
-			dp.Sleep(ms),
-		))
+	// if len(nodes) > 0 {
+	stdo.Println(sel, err)
+	if err == nil {
+		// ex(slide, dp.Run(ct,
+		// 	// chromedp.MouseClickNode(nodes[0]),
+		// 	dp.SetValue(sel, params[1], dp.NodeEnabled),
+		// 	// dp.SendKeys(sel, params[1], dp.NodeEnabled),
+		// 	dp.Sleep(ms),
+		// ))
 		sel = "#login_form-password"
 		ex(slide, dp.Run(ct,
 			dp.SetValue(sel, params[2], dp.NodeEnabled),
@@ -144,5 +151,5 @@ func s08(slide int) {
 	scs(deb, ct, fmt.Sprintf("%02d.png", slide))
 
 	done(slide)
-	s09(slide)
+	s09(9)
 }

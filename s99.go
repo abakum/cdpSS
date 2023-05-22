@@ -1,18 +1,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	dp "github.com/chromedp/chromedp"
+	"github.com/chromedp/chromedp/kb"
 )
 
 func s99(slide int) {
 	var (
 		params = conf.P[strconv.Itoa(abs(slide))]
 		err    error
+		tit    string
+		sel    string
 	)
 	stdo.Println(params)
 	ct, ca := chrome()
@@ -21,27 +25,24 @@ func s99(slide int) {
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
 		dp.Sleep(sec),
+		dp.Title(&tit),
 	)
-	tit := "Navigate"
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
+	ct, ca = context.WithTimeout(ct, to)
+	defer ca()
 
-	tit = "ar-user-name"
-	sel := fmt.Sprintf("input[name=%q]", tit)
-	err = Run(ct, sec*3,
-		dp.Click(sel, dp.ByQuery, dp.NodeVisible, dp.NodeEnabled),
-		dp.Sleep(ms),
-		dp.SendKeys(sel, params[1], dp.ByQuery, dp.NodeVisible),
-		dp.Sleep(ms),
-	)
-	stdo.Println(tit, err)
-	if err == nil {
-		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
-		tit = "submit"
-		sel = fmt.Sprintf("button[type=%q]", tit)
+	if tit == "Авторизация" {
+		tit = "ar-user-name"
+		sel = fmt.Sprintf("input[name=%q]", tit)
 		ex(slide, dp.Run(ct,
-			dp.Click(sel, dp.ByQuery, dp.NodeEnabled),
+			dp.Click(sel, dp.ByQuery, dp.NodeVisible, dp.NodeEnabled),
+			dp.Sleep(ms),
+			dp.SendKeys(sel, params[1], dp.ByQuery, dp.NodeVisible),
+			dp.Sleep(ms),
+			dp.SendKeys(sel, kb.Enter, dp.ByQuery, dp.NodeVisible),
 			dp.Sleep(ms),
 		))
+		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 		tit = "ar-user-password"
 		sel = fmt.Sprintf("input[name=%q]", tit)
@@ -50,15 +51,17 @@ func s99(slide int) {
 			dp.Sleep(ms),
 			dp.SendKeys(sel, params[2], dp.ByQuery, dp.NodeVisible),
 			dp.Sleep(ms),
+			dp.SendKeys(sel, kb.Enter, dp.ByQuery, dp.NodeVisible),
+			dp.Sleep(ms),
 		))
 		scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
-		tit = "submit"
-		sel = fmt.Sprintf("button[type=%q]", tit)
-		ex(slide, dp.Run(ct,
-			dp.Click(sel, dp.ByQuery, dp.NodeEnabled),
-			dp.Sleep(ms),
-		))
+		// tit = "submit"
+		// sel = fmt.Sprintf("button[type=%q]", tit)
+		// ex(slide, dp.Run(ct,
+		// 	dp.Click(sel, dp.ByQuery, dp.NodeEnabled),
+		// 	dp.Sleep(ms),
+		// ))
 	}
 
 	tit = "Редактировать"
@@ -144,7 +147,7 @@ func s99(slide int) {
 		return
 	}
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
-	time.Sleep(sec * 3)
+	time.Sleep(sec * 7)
 
 	tit = "Сохранить и закрыть"
 	sel = "div.multiBtnInner_xbp:nth-child(4)"

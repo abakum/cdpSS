@@ -15,6 +15,7 @@ func s04(slide int) {
 		params = conf.P[strconv.Itoa(abs(slide))]
 		imageBackground,
 		visualContainerHost page.Viewport
+		tit string
 	)
 	stdo.Println(params)
 	ct, ca := chrome()
@@ -23,12 +24,13 @@ func s04(slide int) {
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
 		dp.Sleep(sec),
+		dp.Title(&tit),
 	)
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 	ct, ca = context.WithTimeout(ct, to)
 	defer ca()
 	bytes := []byte{}
 	// iframe(slide, ct, params[0])
-	tit := "Navigate"
 	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	cb(slide, ct, "СЦ")
@@ -63,7 +65,7 @@ func cb(slide int, ctx context.Context, key string) {
 
 	tit = "Поиск"
 	sel := "div.searchHeader.show > input"
-	ex(slide, dp.Run(ctx,
+	ex(slide, Run(ctx, to*2,
 		dp.SetValue(sel, sc, dp.NodeEnabled, dp.NodeVisible),
 		dp.SendKeys(sel, kb.Enter),
 		// chromedp.SendKeys(inp, sc, chromedp.NodeVisible),
@@ -73,7 +75,7 @@ func cb(slide int, ctx context.Context, key string) {
 
 	tit = sc
 	sel = fmt.Sprintf("//span[.=%q]", tit)
-	ex(slide, dp.Run(ctx,
+	ex(slide, Run(ctx, to*2,
 		dp.Click(sel, dp.NodeVisible),
 		dp.Sleep(ms),
 	))
@@ -83,8 +85,8 @@ func cb(slide int, ctx context.Context, key string) {
 	))
 	scs(slide, ctx, fmt.Sprintf("%02d %s.png", slide, tit))
 
-	ex(slide, dp.Run(ctx,
+	ex(slide, Run(ctx, to*3,
 		dp.WaitNotPresent("div.circle"),
-		dp.Sleep(ms),
+		dp.Sleep(sec),
 	))
 }
