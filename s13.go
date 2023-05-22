@@ -19,6 +19,7 @@ func s13(slide int) {
 	dp.Run(ct,
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
+		dp.WaitReady("body"),
 		dp.Sleep(sec),
 		dp.Title(&tit),
 	)

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/cdproto/cdp"
@@ -17,7 +18,8 @@ func s08(slide int) {
 		TaskClosed = "TaskClosed.xlsx"
 		params     = conf.P[strconv.Itoa(abs(slide))]
 		nodes      []*cdp.Node
-		tit        string
+		aNodes,
+		oNodes []*cdp.Node
 	)
 	stdo.Println(params)
 	ct, ca := chrome()
@@ -26,34 +28,39 @@ func s08(slide int) {
 		browser.SetDownloadBehavior("allow").WithDownloadPath(filepath.Join(root, doc)),
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
-		dp.Sleep(sec),
-		dp.Title(&tit),
+		dp.WaitReady("body"),
 	)
-	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 	ct, ca = context.WithTimeout(ct, to)
 	defer ca()
+	tit := "По работникам и типу задачи"
+	sel := fmt.Sprintf("//span[.=%q]", tit)
+	for i := 0; i < 7; i++ {
+		Run(ct, sec,
+			dp.Title(&tit),
+			dp.Nodes("#login_form-username", &aNodes),
+			dp.Nodes(sel, &oNodes),
+		)
+		stdo.Println(i, tit, len(strings.Trim(tit, " ")), len(aNodes), len(oNodes))
+		if len(strings.Trim(tit, " ")) > 0 || len(aNodes) > 0 || len(oNodes) > 0 {
+			break
+		}
+	}
+	if len(oNodes) > 0 {
+		tit = "Отчеты по задачам"
+	}
+	if len(aNodes) > 0 {
+		tit = "Аргус"
+	}
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
-	sel := "#login_form-username"
-	err := Run(ct, sec*3,
-		// chromedp.MouseClickNode(nodes[0]),
-		dp.SetValue(sel, params[1], dp.NodeEnabled),
-		// dp.SendKeys(sel, params[1], dp.NodeEnabled),
-		dp.Sleep(ms),
-	)
-	// Run(ct, sec,
-	// 	dp.Nodes(sel, &nodes),
-	// )
-	// stdo.Println(sel, len(nodes))
-
-	// if len(nodes) > 0 {
-	stdo.Println(sel, err)
-	if err == nil {
-		// ex(slide, dp.Run(ct,
-		// 	// chromedp.MouseClickNode(nodes[0]),
-		// 	dp.SetValue(sel, params[1], dp.NodeEnabled),
-		// 	// dp.SendKeys(sel, params[1], dp.NodeEnabled),
-		// 	dp.Sleep(ms),
-		// ))
+	if tit == "Аргус" {
+		sel = "#login_form-username"
+		ex(slide, dp.Run(ct,
+			// chromedp.MouseClickNode(nodes[0]),
+			dp.SetValue(sel, params[1], dp.NodeEnabled),
+			// dp.SendKeys(sel, params[1], dp.NodeEnabled),
+			dp.Sleep(ms),
+		))
 		sel = "#login_form-password"
 		ex(slide, dp.Run(ct,
 			dp.SetValue(sel, params[2], dp.NodeEnabled),

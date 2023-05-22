@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/cdp"
 	dp "github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
 )
@@ -15,8 +17,8 @@ func s99(slide int) {
 	var (
 		params = conf.P[strconv.Itoa(abs(slide))]
 		err    error
-		tit    string
-		sel    string
+		aNodes,
+		kNodes []*cdp.Node
 	)
 	stdo.Println(params)
 	ct, ca := chrome()
@@ -24,16 +26,34 @@ func s99(slide int) {
 	dp.Run(ct,
 		EmulateViewport(1920, 1080),
 		dp.Navigate(params[0]),
-		dp.Sleep(sec),
-		dp.Title(&tit),
+		dp.WaitReady("body"),
 	)
-	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 	ct, ca = context.WithTimeout(ct, to)
 	defer ca()
+	tit := "ar-user-name"
+	sel := fmt.Sprintf("input[name=%q]", tit)
+	for i := 0; i < 7; i++ {
+		Run(ct, sec,
+			dp.Title(&tit),
+			dp.Nodes(sel, &aNodes),
+			dp.Nodes("div.multiBtnInner_xbp:nth-child(1)", &kNodes),
+		)
+		stdo.Println(i, tit, len(strings.Trim(tit, " ")), len(aNodes), len(kNodes))
+		if len(strings.Trim(tit, " ")) > 0 || len(aNodes) > 0 || len(kNodes) > 0 {
+			break
+		}
+	}
+	if len(kNodes) > 0 {
+		tit = "Кампания"
+	}
+	if len(aNodes) > 0 {
+		tit = "Авторизация"
+	}
+	scs(slide, ct, fmt.Sprintf("%02d %s.png", slide, tit))
 
 	if tit == "Авторизация" {
 		tit = "ar-user-name"
-		sel = fmt.Sprintf("input[name=%q]", tit)
+		// sel = fmt.Sprintf("input[name=%q]", tit)
 		ex(slide, dp.Run(ct,
 			dp.Click(sel, dp.ByQuery, dp.NodeVisible, dp.NodeEnabled),
 			dp.Sleep(ms),
@@ -64,7 +84,7 @@ func s99(slide int) {
 		// ))
 	}
 
-	tit = "Редактировать"
+	tit = "Кампания"
 	sel = "div.multiBtnInner_xbp:nth-child(1)"
 	ex(slide, dp.Run(ct,
 		dp.Click(sel, dp.ByQuery, dp.NodeEnabled),
