@@ -36,9 +36,9 @@ var (
 	caRoot,
 	caTab context.CancelFunc
 	options      []func(*dp.ExecAllocator)
+	upload       = false
 	multiBrowser = true
 	headLess     = true
-	upload       = false
 	sequentially = false
 )
 
@@ -63,44 +63,36 @@ func main() {
 		if err != nil {
 			continue
 		}
-		switch i {
-		case 0:
-			multiBrowser = false
-			continue
-		case 2:
-			headLess = false
-			continue
-		case -2:
-			multiBrowser = true
-			continue
-		case 3, 6:
-			slides = []int{1, 4, 5, 8, 12, 13}
-		case -3, -6:
-			slides = []int{-1, -4, -5, -8, -12, -13}
-		}
-		if abs(i) == 3 {
-			break
-		}
-		if abs(i) == 6 {
-			sequentially = true
-			break
-		}
-		slides = append(slides, i)
 		if i > 0 {
 			headLess = false
 		}
 		if i < 0 {
 			multiBrowser = true
 		}
+		switch i {
+		case 0:
+			multiBrowser = false
+			continue
+		case 2, -2:
+			continue
+		case 3, -3:
+			sequentially = true
+			continue
+		case 14:
+			slides = []int{1, 4, 5, 8, 12, 13}
+		case -14:
+			slides = []int{-1, -4, -5, -8, -12, -13}
+		}
+		if abs(i) == 14 {
+			break
+		}
+		slides = append(slides, i)
 	}
-	// ""  mb 1 hl 1 debug 0
-	// "0" mb 1 hl 1 debug 0
-	// "2" mb x hl 0 debug 1
-	//"-2" mb 1 hl x debug 0
-	// "x" mb 0 hl 0 debug 1 only sx
-	//"-x" mb 0 hl 1 debug 0 only sx
-	// "3" mb 0 hl 1 debug 1 no publicate
-	//"-3" mb 0 hl 0 debug 0 no publicate
+	//""  mb 1 hl 1 debug 0
+	//"0" mb 0 hl x debug 0
+	// >0 mb x hl 0 debug 1
+	// <0 mb 1 hl x debug 0
+	// 3 mb x hl x sequentially 1
 	if len(slides) == 0 {
 		slides = append(slides, 0)
 	}
@@ -146,9 +138,9 @@ func main() {
 		ex(deb, dp.Run(ctTab, // first Run create browser instance
 			dp.Navigate("about:blank"),
 		))
-		// time.AfterFunc(sec*3, func() {
-		// 	dp.Run(ctTab, dp.Evaluate("window.close();", nil)) // close empty tab
-		// })
+		time.AfterFunc(sec, func() {
+			dp.Run(ctTab, dp.Evaluate("window.close();", nil)) // close empty tab
+		})
 	}
 	closer.Bind(func() {
 		deb = 2 //exit
@@ -169,7 +161,7 @@ func main() {
 		os.Exit(exit)
 	})
 	started := make(chan bool, 10)
-	autoStart(started, sec) //for wg.Add
+	autoStart(started, sec) //no one started
 	for _, de := range slides {
 		stdo.Println(de, "multiBrowser:", multiBrowser, "headLess:", headLess, "sequentially:", sequentially)
 		deb = de
@@ -180,19 +172,27 @@ func main() {
 		go start(s12, 12, &wg, started)
 		go start(s13, 13, &wg, started)
 		if sequentially {
-			<-started //for wg.Add
-			wg.Wait()
-			autoStart(started, sec) //for wg.Add
+			<-started               //first started
+			wg.Wait()               //all done
+			autoStart(started, sec) //no one started
 		}
 	}
 	if !sequentially {
-		<-started //for wg.Add
-		wg.Wait()
+		<-started //first started
+		wg.Wait() //all done
 	}
-	start(s97, 97, nil, nil)        //bat jpgs to mov
-	autoStart(started, sec)         //for wg.Add
-	go start(s98, 98, &wg, started) //telegram
-	start(s99, 99, nil, nil)
-	<-started //for wg.Add of s98
-	wg.Wait()
+	for _, de := range slides {
+		switch abs(de) {
+		case 0, 97, 98, 99:
+		default:
+			continue
+		}
+		deb = de
+		start(s97, 97, nil, nil)        //bat jpgs to mov
+		autoStart(started, sec)         //no one started
+		go start(s98, 98, &wg, started) //telegram
+		go start(s99, 99, &wg, started) //ss
+		<-started                       //first started
+		wg.Wait()                       //all done
+	}
 }
